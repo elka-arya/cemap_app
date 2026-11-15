@@ -389,6 +389,10 @@
       transition: all 0.15s ease;
     }
 
+    .keep-together {
+      white-space: nowrap;
+    }
+
     .option-btn:hover:not(:disabled) {
       border-color: var(--cemap-blue);
       background-color: var(--cemap-blue-soft);
@@ -1530,14 +1534,14 @@
         explanation: "Cenový odhadce (widget) na webu makléře nebo kanceláře slouží jako efektivní nástroj pro akvizici nových prodávajících."
       },
       {
-        q: "Co umí CeMap navíc při propojování makléřů a investorů?",
+        q: "Jakou přidanou hodnotu nabízí CeMap při propojování makléřů a investorů?",
         options: [
-          "Umožňuje makléřům nabízet nemovitosti investorům napřímo jako neveřejnou nabídku",
-          "Automaticky schvaluje investiční úvěry do 15 minut",
-          "Vystavuje závazné bankovní odhady bez prohlídky"
+          "Umožňuje makléřům nabízet nemovitosti ověřeným investorům napřímo jako neveřejnou nabídku",
+          "Garantuje odkup každé nemovitosti do 48 hodin za 90 % odhadní ceny",
+          "Zajišťuje přímé financování a schválení investičních úvěrů bez dokládání příjmů"
         ],
         correct: 0,
-        explanation: "Díky přímému propojení můžete v CeMapu oslovit prověřené investory s neveřejnou (off-market) nabídkou ještě před jejím zveřejněním."
+        explanation: "Makléři mohou v CeMapu oslovit prověřené investory formou neveřejné nabídky ještě před spuštěním klasické inzerce."
       },
       {
         q: "Umí CeMap vytvořit cenovou mapu také pro nájemní bydlení?",
@@ -2056,6 +2060,10 @@
       switchView('view-quiz');
     }
 
+    function formatOptionHtml(text) {
+      return escapeHtml(text).replace(/(\d+)\s*%/g, '<span class="keep-together">$1&nbsp;%</span>');
+    }
+
     function renderQuestion() {
       const idx = state.currentQuestionIdx;
       const qObj = QUIZ_QUESTIONS[idx];
@@ -2076,7 +2084,7 @@
         btn.className = 'option-btn';
         btn.innerHTML = `
           <span class="option-letter">${letters[optIdx]}</span>
-          <span>${optText}</span>
+          <span>${formatOptionHtml(optText)}</span>
         `;
         btn.onclick = () => selectOption(optIdx);
         optionsContainer.appendChild(btn);
