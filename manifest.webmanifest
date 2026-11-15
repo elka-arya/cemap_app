@@ -1,0 +1,25 @@
+{
+  "name": "CeMap konferenční kvíz",
+  "short_name": "CeMap kvíz",
+  "description": "Interaktivní realitní kvíz CeMap pro konferenční tablet.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#246B96",
+  "lang": "cs",
+  "icons": [
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

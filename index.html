@@ -1,0 +1,2744 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>CeMap – Interaktivní realitní kvíz</title>
+  <meta name="theme-color" content="#246B96">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="CeMap kvíz">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon-180.png" type="image/png">
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTÉM & PROMĚNNÉ (Čistě bílý podklad, firemní barvy CeMap)
+       ========================================================================== */
+    :root {
+      --bg-page: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-card-hover: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+      --cemap-blue: #246B96;
+      --cemap-blue-dark: #1b5274;
+      --cemap-blue-soft: rgba(36, 107, 150, 0.1);
+      --cemap-red: #D9271E;
+      --cemap-red-dark: #b31e17;
+      --cemap-red-soft: rgba(217, 39, 30, 0.1);
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --success-border: #86efac;
+      --danger: #b91c1c;
+      --danger-bg: #fee2e2;
+      --danger-border: #fca5a5;
+      --warning: #b45309;
+      --warning-bg: #fef3c7;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 22px;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 4px 10px -6px rgba(15, 23, 42, 0.04);
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* ==========================================================================
+       2. ZÁKLADNÍ RESET & RESPONSIVNÍ ROZLOŽENÍ (100dvh, safe-area-inset)
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100dvh;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    /* ==========================================================================
+       3. HLAVIČKA A LOGO CeMap
+       ========================================================================== */
+    .app-header {
+      width: 100%;
+      background-color: var(--bg-page);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    .header-inner {
+      max-width: 820px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .logo-trigger {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      transition: transform 0.12s ease;
+    }
+
+    .logo-trigger:active {
+      transform: scale(0.98);
+    }
+
+    .logo-slogan {
+      margin-top: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: -0.01em;
+    }
+
+    /* ==========================================================================
+       4. HLAVNÍ KONTEJNER A KARTY
+       ========================================================================== */
+    .main-container {
+      flex: 1;
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 20px 16px 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      box-shadow: var(--shadow-sm);
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @media (min-width: 640px) {
+      .card {
+        padding: 36px 32px;
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ==========================================================================
+       5. TYPOGRAFIE A TLAČÍTKA (Dotykové plochy min. 48x48px)
+       ========================================================================== */
+    h1 {
+      font-size: clamp(1.45rem, 3.5vw, 1.95rem);
+      font-weight: 800;
+      line-height: 1.25;
+      margin: 0 0 12px;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: clamp(1.2rem, 3vw, 1.55rem);
+      font-weight: 700;
+      line-height: 1.3;
+      margin: 0 0 16px;
+      color: var(--text-main);
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--text-muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 52px;
+      min-width: 48px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      text-decoration: none;
+      line-height: 1.3;
+    }
+
+    .btn:active {
+      transform: scale(0.985);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background-color: var(--cemap-blue);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--cemap-blue-dark);
+    }
+
+    .btn-red {
+      background-color: var(--cemap-red);
+      color: #ffffff;
+    }
+
+    .btn-red:hover:not(:disabled) {
+      background-color: var(--cemap-red-dark);
+    }
+
+    .btn-outline {
+      background-color: #ffffff;
+      border-color: var(--border-strong);
+      color: var(--text-main);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background-color: var(--bg-card-hover);
+      border-color: var(--cemap-blue);
+    }
+
+    .btn-ghost {
+      background-color: transparent;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background-color: var(--bg-card-hover);
+      color: var(--text-main);
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .btn-sm {
+      min-height: 44px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ==========================================================================
+       6. KROK 0: ÚVODNÍ ROZCESTNÍK
+       ========================================================================== */
+    .intro-badge {
+      display: inline-block;
+      background-color: var(--cemap-blue-soft);
+      color: var(--cemap-blue);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    @media (min-width: 580px) {
+      .role-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .role-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      padding: 22px 20px;
+      min-height: 112px;
+      background-color: #ffffff;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .role-btn:hover {
+      border-color: var(--cemap-blue);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .role-btn.role-new:hover {
+      border-color: var(--cemap-red);
+    }
+
+    .role-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .role-desc {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ==========================================================================
+       7. KROK 1: KVÍZOVÉ OTÁZKY A PROGRESS BAR
+       ========================================================================== */
+    .progress-wrap {
+      margin-bottom: 20px;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background-color: var(--border-color);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cemap-blue), var(--cemap-red));
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .option-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      min-height: 60px;
+      padding: 14px 18px;
+      background-color: #ffffff;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      text-align: left;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--cemap-blue);
+      background-color: var(--cemap-blue-soft);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+    }
+
+    .option-letter {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background-color: var(--bg-card);
+      border: 1.5px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.92rem;
+      color: var(--cemap-blue);
+    }
+
+    .option-btn.correct {
+      background-color: var(--success-bg);
+      border-color: var(--success);
+      color: #14532d;
+    }
+
+    .option-btn.correct .option-letter {
+      background-color: var(--success);
+      border-color: var(--success);
+      color: #ffffff;
+    }
+
+    .option-btn.wrong {
+      background-color: var(--danger-bg);
+      border-color: var(--danger);
+      color: #7f1d1d;
+    }
+
+    .option-btn.wrong .option-letter {
+      background-color: var(--danger);
+      border-color: var(--danger);
+      color: #ffffff;
+    }
+
+    .option-btn.dimmed {
+      opacity: 0.55;
+    }
+
+    .feedback-box {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-radius: var(--radius-md);
+      border-left: 5px solid var(--cemap-blue);
+      background-color: #ffffff;
+      border-top: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .feedback-box.is-correct {
+      border-left-color: var(--success);
+    }
+
+    .feedback-box.is-wrong {
+      border-left-color: var(--danger);
+    }
+
+    .feedback-title {
+      font-weight: 800;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .feedback-box.is-correct .feedback-title {
+      color: var(--success);
+    }
+
+    .feedback-box.is-wrong .feedback-title {
+      color: var(--danger);
+    }
+
+    .feedback-text {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* ==========================================================================
+       8. KROK 2: KRAJSKÁ TIPOVAČKA & GALERIE 3 FOTOGRAFIÍ
+       ========================================================================== */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    /* Písmo 16px je klíčové, aby iOS Safari při kliknutí do pole nezoomoval stránku */
+    .form-control, .form-select {
+      width: 100%;
+      min-height: 52px;
+      padding: 12px 16px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      background-color: #ffffff;
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      transition: border-color 0.15s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--cemap-blue);
+    }
+
+    .property-card {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 16px;
+      margin-bottom: 20px;
+    }
+
+    .gallery-main {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      background-color: #e2e8f0;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      cursor: zoom-in;
+      border: 1px solid var(--border-color);
+    }
+
+    .gallery-main img, .gallery-main svg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .gallery-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border-strong);
+      color: var(--text-main);
+      font-size: 1.3rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      z-index: 5;
+    }
+
+    .gallery-nav:hover {
+      background-color: #ffffff;
+      color: var(--cemap-blue);
+    }
+
+    .gallery-prev { left: 10px; }
+    .gallery-next { right: 10px; }
+
+    .gallery-caption-badge {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: rgba(15, 23, 42, 0.78);
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .gallery-zoom-hint {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: rgba(255, 255, 255, 0.9);
+      color: var(--text-main);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .gallery-thumbs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .thumb-btn {
+      padding: 0;
+      border: 2.5px solid transparent;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      min-height: 54px;
+      cursor: pointer;
+      background-color: #f1f5f9;
+      opacity: 0.72;
+      transition: all 0.15s ease;
+    }
+
+    .thumb-btn.active {
+      border-color: var(--cemap-blue);
+      opacity: 1;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .thumb-btn img, .thumb-btn svg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .prop-specs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    @media (min-width: 540px) {
+      .prop-specs {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .spec-item {
+      background-color: var(--bg-card);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .spec-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-light);
+      letter-spacing: 0.03em;
+    }
+
+    .spec-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    .price-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .price-input-wrap .form-control {
+      padding-right: 54px;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--cemap-blue);
+    }
+
+    .price-suffix {
+      position: absolute;
+      right: 16px;
+      font-weight: 800;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       9. VÝSLEDKOVÁ OBRAZOVKA (KROK 4)
+       ========================================================================== */
+    .result-box {
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .score-circle {
+      width: 148px;
+      height: 148px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, var(--cemap-blue), #164866);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 28px rgba(36, 107, 150, 0.25);
+      border: 5px solid #ffffff;
+      outline: 3px solid var(--cemap-blue-soft);
+    }
+
+    .score-num {
+      font-size: 2.35rem;
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
+    .score-sub {
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .rank-badge {
+      display: inline-block;
+      background-color: var(--cemap-red);
+      color: #ffffff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      padding: 8px 22px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    .result-summary-card {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin: 20px auto 26px;
+      max-width: 480px;
+      text-align: left;
+    }
+
+    /* ==========================================================================
+       10. MODÁLNÍ OKNA (Lightbox, PIN zámek, Zprávy)
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    .modal-panel {
+      background-color: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+    }
+
+    .lightbox-panel {
+      position: relative;
+      width: 100%;
+      max-width: 920px;
+      background-color: #0f172a;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .lightbox-media {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      max-height: 75dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #1e293b;
+    }
+
+    .lightbox-media img, .lightbox-media svg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .lightbox-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background-color: #0f172a;
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       11. ZAMČENÁ ADMINISTRACE (PIN 2026)
+       ========================================================================== */
+    .admin-container {
+      max-width: 1080px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .admin-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (min-width: 680px) {
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .stat-card {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .stat-val {
+      font-size: 1.75rem;
+      font-weight: 900;
+      color: var(--cemap-blue);
+      line-height: 1.1;
+    }
+
+    .stat-lbl {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .tabs-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .tab-btn {
+      min-height: 48px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background-color: #ffffff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background-color: var(--cemap-blue);
+      color: #ffffff;
+      border-color: var(--cemap-blue);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar .form-control, .toolbar .form-select {
+      flex: 1 1 200px;
+      min-height: 48px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+
+    th {
+      background-color: var(--bg-card);
+      font-weight: 800;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    tr.best-guess {
+      background-color: #f0fdf4;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill-blue { background-color: var(--cemap-blue-soft); color: var(--cemap-blue); }
+    .pill-red { background-color: var(--cemap-red-soft); color: var(--cemap-red); }
+    .pill-green { background-color: var(--success-bg); color: var(--success); }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 720px) {
+      .key-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .key-item {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .key-thumbs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .key-thumbs div {
+      aspect-ratio: 16 / 10;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .key-thumbs svg, .key-thumbs img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .toast-banner {
+      position: fixed;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #0f172a;
+      color: #ffffff;
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      box-shadow: var(--shadow-md);
+      z-index: 200;
+      animation: fadeIn 0.2s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       HLAVIČKA S VEKTOROVÝM LOGEM CeMap A SKRYTÝM KIOSK SPÍNAČEM (5x klik)
+       ======================================================================== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div id="logoTrigger" class="logo-trigger" role="button" tabindex="0" aria-label="Logo CeMap">
+        <!-- Vektorové inline SVG logo CeMap: "Ce" (#246B96) + "Map" (#D9271E) s protaženým dříkem písmene "p" -->
+        <svg width="214" height="58" viewBox="0 0 214 58" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Písmeno C -->
+          <path d="M35.5 15.2C32.7 12.6 29.1 11.2 24.8 11.2C16.2 11.2 10.2 17.5 10.2 26.2C10.2 34.9 16.2 41.2 24.8 41.2C29.2 41.2 32.8 39.7 35.6 37.0L31.4 32.5C29.5 34.3 27.3 35.2 24.9 35.2C19.6 35.2 16.4 31.4 16.4 26.2C16.4 21.0 19.6 17.2 24.9 17.2C27.3 17.2 29.4 18.1 31.3 19.8L35.5 15.2Z" fill="#246B96"/>
+          <!-- Písmeno e -->
+          <path d="M51.2 18.8C43.8 18.8 38.6 23.9 38.6 30.2C38.6 36.8 43.7 41.3 51.4 41.3C55.9 41.3 59.4 39.8 61.7 37.2L58.2 33.7C56.5 35.4 54.4 36.3 51.7 36.3C47.7 36.3 45.0 34.3 44.5 31.7H62.6C62.7 31.1 62.8 30.3 62.8 29.7C62.8 23.5 58.1 18.8 51.2 18.8ZM44.5 27.8C45.1 24.9 47.6 23.2 51.1 23.2C54.5 23.2 56.9 24.9 57.3 27.8H44.5Z" fill="#246B96"/>
+          <!-- Písmeno M -->
+          <path d="M68.5 40.8V11.7H74.8L85.4 29.8L95.9 11.7H102.2V40.8H96.3V22.1L87.1 37.6H83.6L74.4 22.1V40.8H68.5Z" fill="#D9271E"/>
+          <!-- Písmeno a -->
+          <path d="M118.4 18.8C114.3 18.8 110.6 20.0 108.1 21.9L110.5 26.0C112.4 24.5 114.9 23.6 117.6 23.6C121.3 23.6 123.2 25.3 123.2 28.1V28.4H117.2C110.5 28.4 107.1 31.1 107.1 35.1C107.1 38.9 110.4 41.4 115.4 41.4C119.0 41.4 121.7 40.1 123.3 38.0V40.8H128.9V28.3C128.9 22.1 125.1 18.8 118.4 18.8ZM123.2 33.4C122.4 35.6 119.9 37.0 116.8 37.0C114.2 37.0 112.7 35.9 112.7 34.4C112.7 32.7 114.1 31.8 117.6 31.8H123.2V33.4Z" fill="#D9271E"/>
+          <!-- Písmeno p s charakteristickým protaženým levým dříkem dolů -->
+          <path d="M148.5 18.8C144.8 18.8 142.0 20.2 140.3 22.5V19.3H134.5V54.5H140.4V37.9C142.1 40.1 144.9 41.4 148.5 41.4C154.9 41.4 159.8 36.7 159.8 30.1C159.8 23.5 154.9 18.8 148.5 18.8ZM147.2 36.4C143.2 36.4 140.3 33.7 140.3 30.1C140.3 26.5 143.2 23.8 147.2 23.8C151.1 23.8 153.9 26.5 153.9 30.1C153.9 33.7 151.1 36.4 147.2 36.4Z" fill="#D9271E"/>
+          <!-- Dekorativní akcentní linka pod logem -->
+          <rect x="146" y="47" width="54" height="3.2" rx="1.6" fill="#246B96"/>
+        </svg>
+        <div class="logo-slogan">...jediný nástroj, který pro oceňování nemovitostí potřebujete</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       HLAVNÍ OBSAH APLIKACE
+       ======================================================================== -->
+  <main class="main-container">
+
+    <!-- KROK 0: ÚVODNÍ OBRAZOVKA -->
+    <section id="view-intro" class="card">
+      <div class="intro-badge">Konferenční výzva CeMap</div>
+      <h1>Otestujte své znalosti realitního trhu a dat z katastru</h1>
+      <p>Čeká vás 10 rychlých odborných otázek z praxe oceňování nemovitostí a bonusová krajská tipovačka o hlavní cenu na našem stánku.</p>
+      <h2 style="margin-top: 24px; margin-bottom: 6px; font-size: 1.25rem;">Používáte už ve své praxi CeMap?</h2>
+      <div class="role-grid">
+        <button type="button" class="role-btn" onclick="startQuiz(true)">
+          <span class="role-title">
+            <span style="color: var(--cemap-blue);">●</span> Ano, jsem uživatel
+          </span>
+          <span class="role-desc">S CeMapem už pracuji. Přejít rovnou na 1. otázku kvízu.</span>
+        </button>
+        <button type="button" class="role-btn role-new" onclick="startQuiz(false)">
+          <span class="role-title">
+            <span style="color: var(--cemap-red);">●</span> Zatím ne
+          </span>
+          <span class="role-desc">Chci si kvíz vyzkoušet a zasoutěžit si o odměnu na stánku.</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- KROK 1: 10 ODBORNÝCH OTÁZEK -->
+    <section id="view-quiz" class="card hidden">
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span id="q-counter">Otázka 1 z 10</span>
+          <span id="q-score-live">Správně: 0</span>
+        </div>
+        <div class="progress-track">
+          <div id="q-progress-bar" class="progress-fill" style="width: 10%;"></div>
+        </div>
+      </div>
+
+      <h2 id="q-text">Načítání otázky...</h2>
+
+      <div id="q-options" class="options-list"></div>
+
+      <div id="q-feedback" class="feedback-box hidden">
+        <div id="q-feedback-title" class="feedback-title"></div>
+        <p id="q-feedback-text" class="feedback-text"></p>
+      </div>
+
+      <div style="margin-top: 22px; display: flex; justify-content: flex-end;">
+        <button type="button" id="btn-next-q" class="btn btn-primary btn-block hidden" onclick="nextQuestion()">
+          Pokračovat na další otázku →
+        </button>
+      </div>
+    </section>
+
+    <!-- KROK 2: BONUSOVÁ KRAJSKÁ TIPOVAČKA -->
+    <section id="view-tip" class="card hidden">
+      <div class="intro-badge" style="background-color: var(--cemap-red-soft); color: var(--cemap-red);">Bonusová krajská tipovačka</div>
+      <h2>Odhadněte tržní cenu nemovitosti ve vašem kraji</h2>
+      <p>Vyberte kraj, prohlédněte si fotografie i parametry reálné nemovitosti a tipněte její tržní cenu. Nejpřesnější odhad vyhrává hlavní cenu!</p>
+
+      <div class="form-group">
+        <label for="regionSelect" class="form-label">Vyberte kraj ČR:</label>
+        <select id="regionSelect" class="form-select" onchange="onRegionChange()"></select>
+      </div>
+
+      <div id="propertyPreview" class="property-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <div>
+            <div id="prop-title" style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);"></div>
+            <div id="prop-location" style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;"></div>
+          </div>
+          <span id="prop-region-badge" class="pill pill-blue"></span>
+        </div>
+
+        <!-- Galerie 3 fotografií -->
+        <div class="gallery-main" onclick="openLightbox()" title="Kliknutím zvětšíte fotografii">
+          <button type="button" class="gallery-nav gallery-prev" onclick="event.stopPropagation(); changePhoto(-1)" aria-label="Předchozí fotografie">‹</button>
+          <div id="gallery-main-stage" style="width: 100%; height: 100%;"></div>
+          <button type="button" class="gallery-nav gallery-next" onclick="event.stopPropagation(); changePhoto(1)" aria-label="Další fotografie">›</button>
+          <div id="gallery-caption" class="gallery-caption-badge">1 / 3 – Exteriér</div>
+          <div class="gallery-zoom-hint">🔍 Zvětšit</div>
+        </div>
+
+        <div id="gallery-thumbs" class="gallery-thumbs"></div>
+
+        <!-- Parametry nemovitosti -->
+        <div class="prop-specs">
+          <div class="spec-item">
+            <div class="spec-label">Dispozice</div>
+            <div id="spec-layout" class="spec-val">-</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Užitná plocha</div>
+            <div id="spec-area" class="spec-val">-</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Stav</div>
+            <div id="spec-state" class="spec-val">-</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Vlastnictví</div>
+            <div id="spec-owner" class="spec-val">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="priceGuessInput" class="form-label">Váš tip tržní ceny (v Kč):</label>
+        <div class="price-input-wrap">
+          <input type="text" id="priceGuessInput" class="form-control" inputmode="numeric" placeholder="např. 6 450 000" autocomplete="off">
+          <span class="price-suffix">Kč</span>
+        </div>
+        <div id="tip-error" class="error-msg hidden"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-red btn-block" onclick="submitTip(false)">
+          Potvrdit tip a pokračovat →
+        </button>
+        <button type="button" class="btn btn-ghost btn-block" onclick="submitTip(true)">
+          Tipovačku přeskočit
+        </button>
+      </div>
+    </section>
+
+    <!-- KROK 3: BRÁNA PŘED VÝSLEDKEM (Povinná pro "Zatím ne", volitelná pro uživatele s tipem) -->
+    <section id="view-lead" class="card hidden">
+      <div id="lead-badge" class="intro-badge">Poslední krok před výsledkem</div>
+      <h2 id="lead-heading">Zobrazte své skóre a zapojte se do soutěže</h2>
+      <p id="lead-subtext">Zadejte své jméno a e-mail nebo telefon, abychom vám mohli zobrazit vyhodnocení kvízu a předat odměnu na stánku CeMap.</p>
+
+      <div class="form-group">
+        <label for="leadName" class="form-label">Jméno a příjmení *</label>
+        <input type="text" id="leadName" class="form-control" placeholder="Jan Novák" autocomplete="name">
+      </div>
+
+      <div class="form-group">
+        <label for="leadEmail" class="form-label">E-mail</label>
+        <input type="email" id="leadEmail" class="form-control" placeholder="jan.novak@realitka.cz" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="leadPhone" class="form-label">Telefon</label>
+        <input type="tel" id="leadPhone" class="form-control" placeholder="+420 777 123 456" autocomplete="tel">
+      </div>
+
+      <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 12px;">
+        * Vyplňte prosím jméno a alespoň jeden kontakt (e-mail nebo telefon).
+      </div>
+
+      <div id="lead-error" class="error-msg hidden" style="margin-bottom: 14px;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" class="btn btn-primary btn-block" onclick="submitLeadForm()">
+          Zobrazit můj výsledek →
+        </button>
+        <button type="button" id="btn-skip-lead-existing" class="btn btn-ghost btn-block hidden" onclick="skipLeadForExistingUser()">
+          Nechci soutěžit o cenu, rovnou zobrazit výsledek
+        </button>
+      </div>
+    </section>
+
+    <!-- KROK 4: VÝSLEDKOVÁ OBRAZOVKA (Bez konkrétních výher) -->
+    <section id="view-result" class="card hidden">
+      <div class="result-box">
+        <div class="score-circle">
+          <div id="res-score" class="score-num">0 / 10</div>
+          <div class="score-sub">bodů</div>
+        </div>
+
+        <div id="res-rank" class="rank-badge">CeMap Profík</div>
+        <h2 id="res-title" style="margin-bottom: 8px;">Skvělý výsledek!</h2>
+        <p id="res-desc" style="max-width: 500px; margin: 0 auto;">Děkujeme za účast v konferenčním kvízu CeMap. Zastavte se u našeho týmu na stánku.</p>
+
+        <div class="result-summary-card">
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+            <span style="color: var(--text-muted); font-weight: 600;">Úspěšnost v testu:</span>
+            <span id="res-percent" style="font-weight: 800; color: var(--cemap-blue);">0 %</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+            <span style="color: var(--text-muted); font-weight: 600;">Vybraný kraj tipovačky:</span>
+            <span id="res-region" style="font-weight: 700;">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+            <span style="color: var(--text-muted); font-weight: 600;">Váš odhad tržní ceny:</span>
+            <span id="res-tip" style="font-weight: 800; color: var(--cemap-red);">Přeskočeno</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-block" style="max-width: 480px;" onclick="resetKiosk()">
+          Nový účastník / Hrát znovu
+        </button>
+      </div>
+    </section>
+
+    <!-- ZAMČENÁ ADMINISTRACE (PIN 2026) -->
+    <section id="view-admin" class="admin-container hidden">
+      <div class="card">
+        <div class="admin-header">
+          <div>
+            <span class="pill pill-red" style="margin-bottom: 6px;">KIOSK ADMINISTRACE</span>
+            <h2 style="margin: 0;">Přehled účastníků, leadů a klíč cen</h2>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeAdmin()">
+            ← Zpět do kvízu
+          </button>
+        </div>
+
+        <!-- Souhrnné statistiky -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div id="stat-total" class="stat-val">0</div>
+            <div class="stat-lbl">Celkem účastníků</div>
+          </div>
+          <div class="stat-card">
+            <div id="stat-existing" class="stat-val" style="color: var(--cemap-blue);">0</div>
+            <div class="stat-lbl">Stávající uživatelé</div>
+          </div>
+          <div class="stat-card">
+            <div id="stat-leads" class="stat-val" style="color: var(--cemap-red);">0</div>
+            <div class="stat-lbl">Nové leady</div>
+          </div>
+          <div class="stat-card">
+            <div id="stat-avg" class="stat-val" style="color: var(--success);">0 / 10</div>
+            <div class="stat-lbl">Průměrné skóre</div>
+          </div>
+        </div>
+
+        <!-- Záložky administrace -->
+        <div class="tabs-bar">
+          <button type="button" id="tab-btn-leads" class="tab-btn active" onclick="switchAdminTab('leads')">
+            Nasbírané leady & Tipovačka
+          </button>
+          <button type="button" id="tab-btn-key" class="tab-btn" onclick="switchAdminTab('key')">
+            Klíč správných cen (14 krajů)
+          </button>
+          <button type="button" id="tab-btn-settings" class="tab-btn" onclick="switchAdminTab('settings')">
+            Nastavení PINu
+          </button>
+        </div>
+
+        <!-- ZÁLOŽKA 1: LEADY & TIPOVAČKA -->
+        <div id="admin-tab-leads">
+          <div class="toolbar">
+            <input type="text" id="adminSearch" class="form-control" placeholder="Hledat jméno, e-mail, telefon..." oninput="renderLeadsTable()">
+            <select id="adminRegionFilter" class="form-select" onchange="renderLeadsTable()"></select>
+            <select id="adminSort" class="form-select" onchange="renderLeadsTable()">
+              <option value="newest">Řadit: Nejnovější nahoře</option>
+              <option value="accuracy">Řadit: Nejpřesnější tip (odchylka %)</option>
+              <option value="score">Řadit: Nejvyšší skóre v testu</option>
+            </select>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 14px;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="exportCSV()">
+              ⬇ Exportovat do CSV (Excel)
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border);" onclick="promptClearData()">
+              🗑 Vymazat všechna data
+            </button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum a čas</th>
+                  <th>Typ</th>
+                  <th>Jméno</th>
+                  <th>Kontakt</th>
+                  <th>Skóre</th>
+                  <th>Úroveň</th>
+                  <th>Kraj</th>
+                  <th>Tipovaná cena</th>
+                  <th>Správná cena</th>
+                  <th>Odchylka</th>
+                </tr>
+              </thead>
+              <tbody id="leadsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ZÁLOŽKA 2: KLÍČ SPRÁVNÝCH CEN (14 KRAJŮ) -->
+        <div id="admin-tab-key" class="hidden">
+          <p>Zde můžete upravit referenční tržní ceny pro všech 14 krajů. Změny se okamžitě projeví při výpočtu odchylky v tabulce tipovačky.</p>
+          <div id="keyGrid" class="key-grid"></div>
+        </div>
+
+        <!-- ZÁLOŽKA 3: NASTAVENÍ PINU -->
+        <div id="admin-tab-settings" class="hidden">
+          <div style="max-width: 400px;">
+            <h3>Změna administrátorského PIN kódu</h3>
+            <p>Výchozí PIN je <strong>2026</strong>. Zadejte nový 4místný číselný PIN kód pro vstup do administrace přes 5× klepnutí na logo CeMap.</p>
+            <div class="form-group">
+              <label for="newPinInput" class="form-label">Nový 4místný PIN:</label>
+              <input type="password" id="newPinInput" class="form-control" maxlength="4" inputmode="numeric" placeholder="••••">
+            </div>
+            <div id="pin-settings-msg" class="error-msg hidden" style="margin-bottom: 12px;"></div>
+            <button type="button" class="btn btn-primary" onclick="saveNewPin()">Uložit nový PIN</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================
+       MODÁLNÍ OKNA (PIN ZÁMEK, LIGHTBOX FOTOGRAFIÍ, POTVRZENÍ SMAZÁNÍ)
+       ======================================================================== -->
+  <!-- PIN Modal -->
+  <div id="pinModal" class="modal-backdrop hidden" onclick="if(event.target===this) closePinModal()">
+    <div class="modal-panel">
+      <h3 style="margin-top: 0;">Vstup pro obsluhu stánku</h3>
+      <p style="font-size: 0.92rem;">Zadejte 4místný administrátorský PIN kód:</p>
+      <div class="form-group">
+        <input type="password" id="pinInput" class="form-control" maxlength="4" inputmode="numeric" placeholder="••••" style="text-align: center; font-size: 22px; letter-spacing: 8px;" onkeydown="if(event.key==='Enter') verifyPin()">
+        <div id="pinError" class="error-msg hidden" style="text-align: center;">Nesprávný PIN kód.</div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closePinModal()">Zrušit</button>
+        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="verifyPin()">Odemknout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Potvrzovací modal (náhrada za zakázané confirm()) -->
+  <div id="confirmModal" class="modal-backdrop hidden" onclick="if(event.target===this) closeConfirmModal()">
+    <div class="modal-panel">
+      <h3 style="margin-top: 0; color: var(--danger);">Opravdu vymazat data?</h3>
+      <p style="font-size: 0.95rem;">Tato akce nevratně smaže všechny uložené účastníky a tipy z tohoto zařízení. Doporučujeme nejprve provést export do CSV.</p>
+      <div style="display: flex; gap: 10px; margin-top: 18px;">
+        <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeConfirmModal()">Zrušit</button>
+        <button type="button" class="btn btn-red" style="flex: 1;" onclick="executeClearData()">Ano, vymazat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox pro zvětšení fotky -->
+  <div id="lightboxModal" class="modal-backdrop hidden" onclick="if(event.target===this) closeLightbox()">
+    <div class="lightbox-panel">
+      <div id="lightboxStage" class="lightbox-media"></div>
+      <div class="lightbox-bar">
+        <div id="lightboxCaption" style="font-weight: 700; font-size: 0.95rem;">1 / 3 – Exteriér</div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="changeLightboxPhoto(-1)">‹ Předchozí</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="changeLightboxPhoto(1)">Další ›</button>
+          <button type="button" class="btn btn-red btn-sm" onclick="closeLightbox()">Zavřít ✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. BEZPEČNÉ ÚLOŽIŠTĚ (localStorage s automatickým fallbackem v paměti)
+       ========================================================================== */
+    const SafeStorage = (() => {
+      const memoryStore = {};
+      let hasLocalStorage = false;
+      try {
+        const testKey = '__cemap_test__';
+        window.localStorage.setItem(testKey, '1');
+        window.localStorage.removeItem(testKey);
+        hasLocalStorage = true;
+      } catch (e) {
+        hasLocalStorage = false;
+      }
+
+      return {
+        getItem(key) {
+          if (hasLocalStorage) {
+            try {
+              return window.localStorage.getItem(key);
+            } catch (e) {
+              return memoryStore[key] || null;
+            }
+          }
+          return memoryStore[key] || null;
+        },
+        setItem(key, value) {
+          memoryStore[key] = value;
+          if (hasLocalStorage) {
+            try {
+              window.localStorage.setItem(key, value);
+            } catch (e) {
+              // Tichý fallback do paměti (např. anonymní režim Safari)
+            }
+          }
+        }
+      };
+    })();
+
+    const STORAGE_KEYS = {
+      LEADS: 'cemap_quiz_leads_v1',
+      PRICES: 'cemap_quiz_prices_v1',
+      PIN: 'cemap_quiz_pin_v1'
+    };
+
+    /* ==========================================================================
+       2. DATABÁZE 10 ODBORNÝCH OTÁZEK KVÍZU CeMap
+       ========================================================================== */
+    const QUIZ_QUESTIONS = [
+      {
+        q: "Jakou metodu používá CeMap pro oceňování nemovitostí?",
+        options: [
+          "Srovnávací metodu s možností vlastních manuálních úprav",
+          "Čistě automatizovaný odhad bez možnosti zásahu makléře",
+          "Výhradně nákladovou metodu vycházející z tabulek ČSÚ"
+        ],
+        correct: 0,
+        explanation: "CeMap kombinuje přesnou srovnávací metodu na základě reálných transakčních dat s možností odborných manuálních korekcí makléře."
+      },
+      {
+        q: "Od jakého data sahá historie dat v systému CeMap?",
+        options: [
+          "Od 1. 1. 1989",
+          "Od 1. 1. 2014",
+          "Od 1. 1. 2020"
+        ],
+        correct: 1,
+        explanation: "V CeMapu máte k dispozici ucelenou historii cenových údajů z katastru nemovitostí od 1. 1. 2014 (od účinnosti nového občanského zákoníku)."
+      },
+      {
+        q: "Jaké typy nemovitostí dokážete v CeMapu ocenit?",
+        options: [
+          "Pouze standardní byty, rodinné domy a stavební pozemky",
+          "Byty, domy, pozemky, komerční objekty i ostatní typy nemovitostí",
+          "Výhradně bytové jednotky v osobním vlastnictví"
+        ],
+        correct: 1,
+        explanation: "Systém pokrývá kompletní spektrum realitního trhu – byty, rodinné domy, pozemky, komerční nemovitosti i specifické objekty."
+      },
+      {
+        q: "Co přesně znamená zkratka WSDP, se kterou v datech pracujeme?",
+        options: [
+          "Webové služby dálkového přístupu",
+          "World Smart Delivery Portal",
+          "Jednotný registr stavebních povolení"
+        ],
+        correct: 0,
+        explanation: "WSDP jsou Webové služby dálkového přístupu Českého úřadu zeměměřického a katastrálního (ČÚZK), přes které získáváme ověřená data."
+      },
+      {
+        q: "Jak často CeMap aktualizuje transakční data z katastru nemovitostí?",
+        options: [
+          "Denně",
+          "Měsíčně",
+          "Kvartálně"
+        ],
+        correct: 1,
+        explanation: "Transakční ceny z katastru nemovitostí se v CeMapu aktualizují pravidelně na měsíční bázi, zatímco inzerce se aktualizuje denně."
+      },
+      {
+        q: "Který z následujících kroků patří mezi klíčové fáze zpracování inzerce v CeMapu?",
+        options: [
+          "Ruční přepisování kupních smluv pracovníky technické podpory",
+          "Automatické mazání všech inzerátů, u kterých cena klesla o více než 5 %",
+          "Deduplikace záznamů a odhalování cenových anomálií"
+        ],
+        correct: 2,
+        explanation: "Inzeráty ze všech serverů procházejí párováním (deduplikací) a čištěním od extrémních cenových anomálií, aby nezkreslovaly statistiky."
+      },
+      {
+        q: "K čemu primárně slouží webový widget od CeMapu?",
+        options: [
+          "Jako přímý e-shop pro online rezervaci nemovitostí",
+          "Ke sběru kontaktů na majitele nemovitostí z vašeho webu",
+          "Jako automatický kalkulátor hypotečních splátek"
+        ],
+        correct: 1,
+        explanation: "Cenový odhadce (widget) na webu makléře nebo kanceláře slouží jako efektivní nástroj pro akvizici nových prodávajících."
+      },
+      {
+        q: "Co umí CeMap navíc při propojování makléřů a investorů?",
+        options: [
+          "Umožňuje makléřům nabízet nemovitosti investorům napřímo jako neveřejnou nabídku",
+          "Automaticky schvaluje investiční úvěry do 15 minut",
+          "Vystavuje závazné bankovní odhady bez prohlídky"
+        ],
+        correct: 0,
+        explanation: "Díky přímému propojení můžete v CeMapu oslovit prověřené investory s neveřejnou (off-market) nabídkou ještě před jejím zveřejněním."
+      },
+      {
+        q: "Umí CeMap vytvořit cenovou mapu také pro nájemní bydlení?",
+        options: [
+          "Ano, běžně s ní můžete pracovat",
+          "Ne, zaměřuje se výhradně na kupní ceny",
+          "Ano, ale pouze pro hlavní město Prahu"
+        ],
+        correct: 0,
+        explanation: "Cenová mapa nájmů je standardní součástí CeMapu pro celou ČR a pomáhá stanovit tržní nájemné i spočítat investiční výnos."
+      },
+      {
+        q: "Klient vám tvrdí, že jeho byt 1+kk v původním stavu má hodnotu 15 milionů, protože „to říkali v televizi“. Jak v praxi nejlépe využijete CeMap?",
+        options: [
+          "Vygenerujete cenovou analýzu s grafem vývoje a realizovanými cenami v okolí",
+          "Vystavíte mu oficiální znalecký posudek pro finanční úřad",
+          "Přepošlete jeho kontakt na infolinku CeMapu, aby mu cenu vysvětlili"
+        ],
+        correct: 0,
+        explanation: "Přehledná cenová analýza s reálnými prodejními cenami z katastru v dané ulici je nejsilnější argument pro nastavení reálné nabídkové ceny."
+      }
+    ];
+
+    /* ==========================================================================
+       3. GENERÁTOR DETAILNÍCH ARCHITEKTONICKÝCH SVG ILUSTRACÍ (100% OFFLINE)
+       ========================================================================== */
+    function buildArchitecturalSVG(type, theme) {
+      const { wall, roof, accent, sky, floor } = theme;
+      if (type === 'exterior') {
+        return `
+          <svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="sky-${wall.slice(1)}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="${sky}"/>
+                <stop offset="100%" stop-color="#f8fafc"/>
+              </linearGradient>
+              <linearGradient id="grass-${wall.slice(1)}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#86efac"/>
+                <stop offset="100%" stop-color="#22c55e"/>
+              </linearGradient>
+            </defs>
+            <!-- Obloha a slunce -->
+            <rect width="800" height="360" fill="url(#sky-${wall.slice(1)})"/>
+            <circle cx="660" cy="85" r="36" fill="#fef08a" opacity="0.85"/>
+            <!-- Mraky -->
+            <path d="M120 95 Q140 70 170 85 Q195 65 225 88 Q245 90 240 110 L115 110 Z" fill="#ffffff" opacity="0.8"/>
+            <path d="M440 70 Q460 50 485 65 Q510 50 530 72 L435 78 Z" fill="#ffffff" opacity="0.7"/>
+            <!-- Zahrada / Pozemek -->
+            <rect y="355" width="800" height="145" fill="url(#grass-${wall.slice(1)})"/>
+            <!-- Příjezdová cesta -->
+            <polygon points="340,365 460,365 530,500 270,500" fill="#cbd5e1"/>
+            <!-- Stín budovy -->
+            <polygon points="180,365 620,365 650,390 160,390" fill="#15803d" opacity="0.28"/>
+            <!-- Hlavní fasáda domu -->
+            <rect x="190" y="185" width="420" height="180" rx="4" fill="${wall}" stroke="#cbd5e1" stroke-width="2"/>
+            <!-- Architektonický obklad -->
+            <rect x="190" y="185" width="140" height="180" fill="${accent}" opacity="0.16"/>
+            <!-- Střecha -->
+            <polygon points="165,188 400,95 635,188" fill="${roof}"/>
+            <polygon points="400,95 635,188 615,188 400,108" fill="#0f172a" opacity="0.2"/>
+            <!-- Okna horní -->
+            <rect x="230" y="210" width="75" height="52" rx="3" fill="#bae6fd" stroke="#334155" stroke-width="4"/>
+            <line x1="267" y1="210" x2="267" y2="262" stroke="#334155" stroke-width="3"/>
+            <rect x="362" y="210" width="75" height="52" rx="3" fill="#bae6fd" stroke="#334155" stroke-width="4"/>
+            <line x1="400" y1="210" x2="400" y2="262" stroke="#334155" stroke-width="3"/>
+            <rect x="495" y="210" width="75" height="52" rx="3" fill="#bae6fd" stroke="#334155" stroke-width="4"/>
+            <line x1="532" y1="210" x2="532" y2="262" stroke="#334155" stroke-width="3"/>
+            <!-- Francouzská okna a vstupní dveře -->
+            <rect x="230" y="285" width="75" height="80" rx="2" fill="#e0f2fe" stroke="#334155" stroke-width="4"/>
+            <rect x="372" y="282" width="56" height="83" rx="3" fill="${accent}" stroke="#1e293b" stroke-width="4"/>
+            <circle cx="418" cy="326" r="3.5" fill="#fef08a"/>
+            <rect x="495" y="285" width="75" height="80" rx="2" fill="#e0f2fe" stroke="#334155" stroke-width="4"/>
+            <!-- Stromy a keře -->
+            <circle cx="115" cy="315" r="42" fill="#16a34a"/>
+            <circle cx="95" cy="330" r="30" fill="#15803d"/>
+            <rect x="110" y="345" width="10" height="30" fill="#78350f"/>
+            <circle cx="690" cy="322" r="38" fill="#16a34a"/>
+            <rect x="685" y="348" width="10" height="26" fill="#78350f"/>
+          </svg>
+        `;
+      }
+
+      if (type === 'living') {
+        return `
+          <svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <!-- Stěny a podlaha -->
+            <rect width="800" height="350" fill="#f8fafc"/>
+            <polygon points="0,350 800,350 800,500 0,500" fill="${floor}"/>
+            <!-- Lišta podlahy -->
+            <rect y="342" width="800" height="8" fill="#cbd5e1"/>
+            <!-- Velké francouzské okno s výhledem -->
+            <rect x="75" y="55" width="270" height="245" rx="4" fill="#e0f2fe" stroke="#334155" stroke-width="6"/>
+            <circle cx="150" cy="110" r="24" fill="#fef08a" opacity="0.8"/>
+            <path d="M78 240 Q150 205 220 235 T342 225 L342 297 L78 297 Z" fill="#86efac"/>
+            <line x1="210" y1="55" x2="210" y2="300" stroke="#334155" stroke-width="5"/>
+            <!-- Záclony -->
+            <rect x="60" y="45" width="32" height="275" rx="4" fill="#ffffff" opacity="0.9" stroke="#e2e8f0"/>
+            <rect x="332" y="45" width="32" height="275" rx="4" fill="#ffffff" opacity="0.9" stroke="#e2e8f0"/>
+            <!-- Obraz na stěně -->
+            <rect x="465" y="75" width="175" height="115" rx="3" fill="#ffffff" stroke="#1e293b" stroke-width="5"/>
+            <rect x="480" y="90" width="145" height="85" fill="${accent}" opacity="0.22"/>
+            <circle cx="530" cy="122" r="16" fill="${accent}"/>
+            <polygon points="495,175 555,125 615,175" fill="#246B96" opacity="0.7"/>
+            <!-- Kusový koberec -->
+            <polygon points="210,375 660,375 710,465 160,465" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2"/>
+            <!-- Designová sedačka -->
+            <rect x="360" y="255" width="310" height="95" rx="14" fill="#334155"/>
+            <rect x="375" y="235" width="280" height="45" rx="10" fill="#475569"/>
+            <rect x="350" y="275" width="28" height="85" rx="8" fill="#1e293b"/>
+            <rect x="652" y="275" width="28" height="85" rx="8" fill="#1e293b"/>
+            <!-- Polštáře -->
+            <rect x="392" y="248" width="44" height="38" rx="8" fill="${accent}"/>
+            <rect x="595" y="248" width="44" height="38" rx="8" fill="#246B96"/>
+            <!-- Konferenční stolek -->
+            <ellipse cx="465" cy="405" rx="85" ry="24" fill="#ffffff" stroke="#94a3b8" stroke-width="3"/>
+            <line x1="420" y1="424" x2="412" y2="452" stroke="#475569" stroke-width="4"/>
+            <line x1="510" y1="424" x2="518" y2="452" stroke="#475569" stroke-width="4"/>
+            <!-- Stojací lampa -->
+            <line x1="720" y1="150" x2="720" y2="365" stroke="#1e293b" stroke-width="4"/>
+            <polygon points="695,155 745,155 735,115 705,115" fill="#fef08a" stroke="#d97706" stroke-width="2"/>
+          </svg>
+        `;
+      }
+
+      // 3. Moderní kuchyně s jídelním koutem
+      return `
+        <svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <!-- Stěna a podlaha -->
+          <rect width="800" height="355" fill="#f1f5f9"/>
+          <rect y="355" width="800" height="145" fill="${floor}"/>
+          <!-- Horní skříňky kuchyňské linky -->
+          <rect x="70" y="65" width="440" height="85" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <line x1="180" y1="65" x2="180" y2="150" stroke="#cbd5e1" stroke-width="2"/>
+          <line x1="290" y1="65" x2="290" y2="150" stroke="#cbd5e1" stroke-width="2"/>
+          <line x1="400" y1="65" x2="400" y2="150" stroke="#cbd5e1" stroke-width="2"/>
+          <!-- Digestoř -->
+          <rect x="330" y="30" width="30" height="90" fill="#94a3b8"/>
+          <polygon points="300,145 390,145 370,118 320,118" fill="#64748b"/>
+          <!-- Obklad za linkou -->
+          <rect x="70" y="150" width="440" height="75" fill="${accent}" opacity="0.14"/>
+          <!-- Spodní skříňky a pracovní deska -->
+          <rect x="65" y="225" width="450" height="12" rx="2" fill="#1e293b"/>
+          <rect x="70" y="237" width="440" height="125" fill="${accent}"/>
+          <line x1="180" y1="237" x2="180" y2="362" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
+          <line x1="290" y1="237" x2="290" y2="362" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
+          <line x1="400" y1="237" x2="400" y2="362" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
+          <!-- Vysoká skříň s vestavnou troubou -->
+          <rect x="520" y="65" width="110" height="297" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <rect x="535" y="165" width="80" height="62" rx="4" fill="#0f172a"/>
+          <rect x="543" y="175" width="64" height="38" fill="#334155"/>
+          <!-- Jídelní stůl a židle v popředí -->
+          <rect x="350" y="340" width="260" height="16" rx="4" fill="#78350f"/>
+          <rect x="375" y="356" width="14" height="105" fill="#451a03"/>
+          <rect x="570" y="356" width="14" height="105" fill="#451a03"/>
+          <!-- Židle -->
+          <rect x="305" y="310" width="38" height="65" rx="6" fill="#246B96"/>
+          <rect x="305" y="370" width="48" height="12" rx="4" fill="#1e293b"/>
+          <line x1="312" y1="382" x2="312" y2="455" stroke="#1e293b" stroke-width="4"/>
+          <line x1="344" y1="382" x2="344" y2="455" stroke="#1e293b" stroke-width="4"/>
+          <rect x="618" y="310" width="38" height="65" rx="6" fill="#246B96"/>
+          <rect x="608" y="370" width="48" height="12" rx="4" fill="#1e293b"/>
+          <line x1="615" y1="382" x2="615" y2="455" stroke="#1e293b" stroke-width="4"/>
+          <line x1="648" y1="382" x2="648" y2="455" stroke="#1e293b" stroke-width="4"/>
+          <!-- Závěsná světla nad stolem -->
+          <line x1="435" y1="0" x2="435" y2="115" stroke="#1e293b" stroke-width="3"/>
+          <path d="M412 115 Q435 90 458 115 Z" fill="#1e293b"/>
+          <line x1="525" y1="0" x2="525" y2="115" stroke="#1e293b" stroke-width="3"/>
+          <path d="M502 115 Q525 90 548 115 Z" fill="#1e293b"/>
+        </svg>
+      `;
+    }
+
+    /* ==========================================================================
+       4. DATABÁZE 14 KRAJŮ ČR (Parametry, 3 fotografie s připraveným url: "", ceny)
+       ========================================================================== */
+    const REGIONAL_PROPERTIES = [
+      {
+        id: "praha",
+        region: "Hlavní město Praha",
+        title: "Byt 3+kk s lodžií v cihlové novostavbě",
+        location: "Praha 5 – Smíchov",
+        layout: "3+kk",
+        area: "78 m²",
+        state: "Novostavba",
+        ownership: "Osobní",
+        defaultPrice: 12450000,
+        theme: { wall: "#ffffff", roof: "#334155", accent: "#246B96", sky: "#bae6fd", floor: "#d6c3a5" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "stredocesky",
+        region: "Středočeský kraj",
+        title: "Samostatný rodinný dům se zahradou",
+        location: "Říčany u Prahy",
+        layout: "4+kk",
+        area: "136 m²",
+        state: "Velmi dobrý",
+        ownership: "Osobní",
+        defaultPrice: 11800000,
+        theme: { wall: "#fefce8", roof: "#991b1b", accent: "#D9271E", sky: "#bae6fd", floor: "#cbd5e1" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "jihocesky",
+        region: "Jihočeský kraj",
+        title: "Světlý byt 3+1 po kompletní rekonstrukci",
+        location: "České Budějovice – Rožnov",
+        layout: "3+1",
+        area: "74 m²",
+        state: "Po rekonstrukci",
+        ownership: "Osobní",
+        defaultPrice: 5490000,
+        theme: { wall: "#f8fafc", roof: "#475569", accent: "#246B96", sky: "#e0f2fe", floor: "#e2d1b3" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "plzensky",
+        region: "Plzeňský kraj",
+        title: "Cihlový byt 2+kk s balkonem a garáží",
+        location: "Plzeň – Slovany",
+        layout: "2+kk",
+        area: "56 m²",
+        state: "Velmi dobrý",
+        ownership: "Osobní",
+        defaultPrice: 4850000,
+        theme: { wall: "#fffbeb", roof: "#7c2d12", accent: "#246B96", sky: "#bae6fd", floor: "#d6c3a5" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "karlovarsky",
+        region: "Karlovarský kraj",
+        title: "Byt 3+1 v lázeňské zástavbě",
+        location: "Karlovy Vary – Tuhnice",
+        layout: "3+1",
+        area: "82 m²",
+        state: "Dobrý stav",
+        ownership: "Osobní",
+        defaultPrice: 4150000,
+        theme: { wall: "#fef2f2", roof: "#7f1d1d", accent: "#D9271E", sky: "#e0f2fe", floor: "#cbd5e1" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "ustecky",
+        region: "Ústecký kraj",
+        title: "Zrekonstruovaný byt 3+1 s lodžií",
+        location: "Ústí nad Labem – Severní Terasa",
+        layout: "3+1",
+        area: "71 m²",
+        state: "Po rekonstrukci",
+        ownership: "Osobní",
+        defaultPrice: 3290000,
+        theme: { wall: "#f1f5f9", roof: "#334155", accent: "#246B96", sky: "#bae6fd", floor: "#e2d1b3" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "liberecky",
+        region: "Liberecký kraj",
+        title: "Moderní byt 2+kk s výhledem na Ještěd",
+        location: "Liberec – Rochlice",
+        layout: "2+kk",
+        area: "54 m²",
+        state: "Novostavba",
+        ownership: "Osobní",
+        defaultPrice: 4690000,
+        theme: { wall: "#ffffff", roof: "#1e293b", accent: "#246B96", sky: "#bae6fd", floor: "#d6c3a5" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "kralovehradecky",
+        region: "Královéhradecký kraj",
+        title: "Byt 3+kk v širším centru města",
+        location: "Hradec Králové – Pražské Předměstí",
+        layout: "3+kk",
+        area: "76 m²",
+        state: "Velmi dobrý",
+        ownership: "Osobní",
+        defaultPrice: 6350000,
+        theme: { wall: "#fefce8", roof: "#475569", accent: "#D9271E", sky: "#e0f2fe", floor: "#cbd5e1" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "pardubicky",
+        region: "Pardubický kraj",
+        title: "Prostorný byt 3+1 s balkonem",
+        location: "Pardubice – Zelené Předměstí",
+        layout: "3+1",
+        area: "79 m²",
+        state: "Po rekonstrukci",
+        ownership: "Osobní",
+        defaultPrice: 5790000,
+        theme: { wall: "#f8fafc", roof: "#7c2d12", accent: "#246B96", sky: "#bae6fd", floor: "#e2d1b3" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "vysocina",
+        region: "Kraj Vysočina",
+        title: "Rodinný dům 4+1 se zahradou a garáží",
+        location: "Jihlava – Helenín",
+        layout: "4+1",
+        area: "128 m²",
+        state: "Velmi dobrý",
+        ownership: "Osobní",
+        defaultPrice: 6890000,
+        theme: { wall: "#fffbeb", roof: "#991b1b", accent: "#246B96", sky: "#e0f2fe", floor: "#d6c3a5" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "jihomoravsky",
+        region: "Jihomoravský kraj",
+        title: "Byt 2+kk s terasou v novostavbě",
+        location: "Brno – Královo Pole",
+        layout: "2+kk",
+        area: "58 m²",
+        state: "Novostavba",
+        ownership: "Osobní",
+        defaultPrice: 7190000,
+        theme: { wall: "#ffffff", roof: "#334155", accent: "#D9271E", sky: "#bae6fd", floor: "#cbd5e1" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "olomoucky",
+        region: "Olomoucký kraj",
+        title: "Cihlový byt 3+1 nedaleko centra",
+        location: "Olomouc – Nová Ulice",
+        layout: "3+1",
+        area: "77 m²",
+        state: "Po rekonstrukci",
+        ownership: "Osobní",
+        defaultPrice: 5650000,
+        theme: { wall: "#fefce8", roof: "#7f1d1d", accent: "#246B96", sky: "#e0f2fe", floor: "#e2d1b3" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "zlinsky",
+        region: "Zlínský kraj",
+        title: "Byt 3+kk s lodžií v klidné lokalitě",
+        location: "Zlín – Jižní Svahy",
+        layout: "3+kk",
+        area: "72 m²",
+        state: "Velmi dobrý",
+        ownership: "Osobní",
+        defaultPrice: 4950000,
+        theme: { wall: "#f8fafc", roof: "#334155", accent: "#D9271E", sky: "#bae6fd", floor: "#d6c3a5" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      },
+      {
+        id: "moravskoslezsky",
+        region: "Moravskoslezský kraj",
+        title: "Byt 3+1 po zdařilé rekonstrukci",
+        location: "Ostrava – Poruba",
+        layout: "3+1",
+        area: "73 m²",
+        state: "Po rekonstrukci",
+        ownership: "Osobní",
+        defaultPrice: 3890000,
+        theme: { wall: "#f1f5f9", roof: "#1e293b", accent: "#246B96", sky: "#e0f2fe", floor: "#cbd5e1" },
+        photos: [
+          { label: "Exteriér domu", url: "" },
+          { label: "Obývací pokoj", url: "" },
+          { label: "Moderní kuchyně", url: "" }
+        ]
+      }
+    ];
+
+    /* ==========================================================================
+       5. STAV APLIKACE
+       ========================================================================== */
+    let state = {
+      isExistingUser: false,
+      currentQuestionIdx: 0,
+      score: 0,
+      answeredCurrent: false,
+      selectedRegionId: REGIONAL_PROPERTIES[0].id,
+      activePhotoIdx: 0,
+      guessedPrice: null,
+      leadData: {
+        name: "",
+        email: "",
+        phone: ""
+      }
+    };
+
+    const PHOTO_TYPES = ['exterior', 'living', 'kitchen'];
+
+    /* ==========================================================================
+       6. INICIALIZACE A POMOCNÉ FUNKCE
+       ========================================================================== */
+    function initApp() {
+      // Naplnění roletky krajů v tipovačce i v admin filtru
+      const regionSelect = document.getElementById('regionSelect');
+      const adminFilter = document.getElementById('adminRegionFilter');
+
+      adminFilter.innerHTML = '<option value="ALL">Všechny kraje ČR</option>';
+      REGIONAL_PROPERTIES.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.region;
+        regionSelect.appendChild(opt);
+
+        const optFilter = document.createElement('option');
+        optFilter.value = item.id;
+        optFilter.textContent = item.region;
+        adminFilter.appendChild(optFilter);
+      });
+
+      // Formátování zadávané ceny mezerami při psaní
+      const priceInput = document.getElementById('priceGuessInput');
+      priceInput.addEventListener('input', (e) => {
+        const digits = e.target.value.replace(/\D/g, '');
+        e.target.value = digits ? formatNumber(parseInt(digits, 10)) : '';
+        document.getElementById('tip-error').classList.add('hidden');
+      });
+
+      // Skrytý vstup do administrace: 5x rychlé klepnutí na logo CeMap
+      setupAdminSecretTrigger();
+
+      // Vykreslení výchozí krajské nemovitosti
+      onRegionChange();
+    }
+
+    function formatNumber(num) {
+      if (num === null || num === undefined || isNaN(num)) return '-';
+      return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    function formatCurrency(num) {
+      if (num === null || num === undefined || isNaN(num)) return '-';
+      return formatNumber(num) + ' Kč';
+    }
+
+    function showToast(msg) {
+      const existing = document.querySelector('.toast-banner');
+      if (existing) existing.remove();
+      const el = document.createElement('div');
+      el.className = 'toast-banner';
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => {
+        if (el.parentNode) el.remove();
+      }, 2800);
+    }
+
+    function switchView(viewId) {
+      const views = ['view-intro', 'view-quiz', 'view-tip', 'view-lead', 'view-result', 'view-admin'];
+      views.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', id !== viewId);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ==========================================================================
+       7. LOGIKA KVÍZU (KROK 0 -> KROK 1)
+       ========================================================================== */
+    function startQuiz(isExistingUser) {
+      state.isExistingUser = isExistingUser;
+      state.currentQuestionIdx = 0;
+      state.score = 0;
+      state.answeredCurrent = false;
+      state.guessedPrice = null;
+      state.leadData = { name: "", email: "", phone: "" };
+
+      renderQuestion();
+      switchView('view-quiz');
+    }
+
+    function renderQuestion() {
+      const idx = state.currentQuestionIdx;
+      const qObj = QUIZ_QUESTIONS[idx];
+      state.answeredCurrent = false;
+
+      document.getElementById('q-counter').textContent = `Otázka ${idx + 1} z ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('q-score-live').textContent = `Správně: ${state.score}`;
+      document.getElementById('q-progress-bar').style.width = `${((idx + 1) / QUIZ_QUESTIONS.length) * 100}%`;
+      document.getElementById('q-text').textContent = `${idx + 1}. ${qObj.q}`;
+
+      const optionsContainer = document.getElementById('q-options');
+      optionsContainer.innerHTML = '';
+
+      const letters = ['A', 'B', 'C'];
+      qObj.options.forEach((optText, optIdx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'option-btn';
+        btn.innerHTML = `
+          <span class="option-letter">${letters[optIdx]}</span>
+          <span>${optText}</span>
+        `;
+        btn.onclick = () => selectOption(optIdx);
+        optionsContainer.appendChild(btn);
+      });
+
+      document.getElementById('q-feedback').classList.add('hidden');
+      const nextBtn = document.getElementById('btn-next-q');
+      nextBtn.classList.add('hidden');
+      nextBtn.textContent = idx === QUIZ_QUESTIONS.length - 1
+        ? 'Přejít na krajskou tipovačku →'
+        : 'Pokračovat na další otázku →';
+    }
+
+    function selectOption(selectedIdx) {
+      if (state.answeredCurrent) return;
+      state.answeredCurrent = true;
+
+      const qObj = QUIZ_QUESTIONS[state.currentQuestionIdx];
+      const isCorrect = selectedIdx === qObj.correct;
+      if (isCorrect) state.score++;
+
+      document.getElementById('q-score-live').textContent = `Správně: ${state.score}`;
+
+      const buttons = document.querySelectorAll('#q-options .option-btn');
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === qObj.correct) {
+          btn.classList.add('correct');
+        } else if (idx === selectedIdx && !isCorrect) {
+          btn.classList.add('wrong');
+        } else {
+          btn.classList.add('dimmed');
+        }
+      });
+
+      const fbBox = document.getElementById('q-feedback');
+      const fbTitle = document.getElementById('q-feedback-title');
+      const fbText = document.getElementById('q-feedback-text');
+
+      fbBox.classList.remove('hidden', 'is-correct', 'is-wrong');
+      fbBox.classList.add(isCorrect ? 'is-correct' : 'is-wrong');
+      fbTitle.textContent = isCorrect ? '✓ Správná odpověď!' : '✕ Tentokrát to nevyšlo';
+      fbText.textContent = qObj.explanation;
+
+      document.getElementById('btn-next-q').classList.remove('hidden');
+    }
+
+    function nextQuestion() {
+      if (state.currentQuestionIdx < QUIZ_QUESTIONS.length - 1) {
+        state.currentQuestionIdx++;
+        renderQuestion();
+      } else {
+        // Konec 10. otázky -> přechod na bonusovou krajskou tipovačku
+        document.getElementById('priceGuessInput').value = '';
+        document.getElementById('tip-error').classList.add('hidden');
+        onRegionChange();
+        switchView('view-tip');
+      }
+    }
+
+    /* ==========================================================================
+       8. KROK 2: KRAJSKÁ TIPOVAČKA A GALERIE 3 FOTOGRAFIÍ
+       ========================================================================== */
+    function getSelectedProperty() {
+      return REGIONAL_PROPERTIES.find(p => p.id === state.selectedRegionId) || REGIONAL_PROPERTIES[0];
+    }
+
+    function renderPhotoMedia(prop, photoIdx) {
+      const photoObj = prop.photos[photoIdx];
+      if (photoObj && photoObj.url && photoObj.url.trim() !== '') {
+        return `<img src="${photoObj.url}" alt="${photoObj.label}" onerror="this.style.display='none'">`;
+      }
+      return buildArchitecturalSVG(PHOTO_TYPES[photoIdx], prop.theme);
+    }
+
+    function onRegionChange() {
+      const select = document.getElementById('regionSelect');
+      state.selectedRegionId = select.value;
+      state.activePhotoIdx = 0;
+
+      const prop = getSelectedProperty();
+      document.getElementById('prop-title').textContent = prop.title;
+      document.getElementById('prop-location').textContent = prop.location;
+      document.getElementById('prop-region-badge').textContent = prop.region;
+      document.getElementById('spec-layout').textContent = prop.layout;
+      document.getElementById('spec-area').textContent = prop.area;
+      document.getElementById('spec-state').textContent = prop.state;
+      document.getElementById('spec-owner').textContent = prop.ownership;
+
+      // Vykreslení 3 náhledů
+      const thumbsContainer = document.getElementById('gallery-thumbs');
+      thumbsContainer.innerHTML = '';
+      prop.photos.forEach((p, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'thumb-btn' + (idx === 0 ? ' active' : '');
+        btn.setAttribute('aria-label', p.label);
+        btn.innerHTML = renderPhotoMedia(prop, idx);
+        btn.onclick = () => setPhoto(idx);
+        thumbsContainer.appendChild(btn);
+      });
+
+      updateGalleryStage();
+    }
+
+    function setPhoto(idx) {
+      state.activePhotoIdx = idx;
+      updateGalleryStage();
+    }
+
+    function changePhoto(delta) {
+      state.activePhotoIdx = (state.activePhotoIdx + delta + 3) % 3;
+      updateGalleryStage();
+    }
+
+    function updateGalleryStage() {
+      const prop = getSelectedProperty();
+      const idx = state.activePhotoIdx;
+      document.getElementById('gallery-main-stage').innerHTML = renderPhotoMedia(prop, idx);
+      document.getElementById('gallery-caption').textContent = `${idx + 1} / 3 – ${prop.photos[idx].label}`;
+
+      const thumbs = document.querySelectorAll('#gallery-thumbs .thumb-btn');
+      thumbs.forEach((t, i) => t.classList.toggle('active', i === idx));
+    }
+
+    // Lightbox zvětšení
+    function openLightbox() {
+      updateLightbox();
+      document.getElementById('lightboxModal').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxModal').classList.add('hidden');
+    }
+
+    function changeLightboxPhoto(delta) {
+      changePhoto(delta);
+      updateLightbox();
+    }
+
+    function updateLightbox() {
+      const prop = getSelectedProperty();
+      const idx = state.activePhotoIdx;
+      document.getElementById('lightboxStage').innerHTML = renderPhotoMedia(prop, idx);
+      document.getElementById('lightboxCaption').textContent = `${prop.region} (${idx + 1} / 3 – ${prop.photos[idx].label})`;
+    }
+
+    function submitTip(skipped) {
+      const errEl = document.getElementById('tip-error');
+      errEl.classList.add('hidden');
+
+      if (skipped) {
+        state.guessedPrice = null;
+      } else {
+        const raw = document.getElementById('priceGuessInput').value.replace(/\D/g, '');
+        const val = parseInt(raw, 10);
+        if (!val || val < 100000) {
+          errEl.textContent = 'Zadejte prosím reálnou tipovanou cenu v Kč (nebo zvolte „Tipovačku přeskočit“).';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        state.guessedPrice = val;
+      }
+
+      // Rozhodnutí o zobrazení KROKU 3 (Brána před výsledkem)
+      // - Povinně pro "Zatím ne" (!state.isExistingUser)
+      // - Volitelně pro stávající uživatele, pokud vyplnili tip v tipovačce
+      if (!state.isExistingUser) {
+        prepareLeadGate(false);
+        switchView('view-lead');
+      } else if (state.guessedPrice !== null) {
+        prepareLeadGate(true);
+        switchView('view-lead');
+      } else {
+        // Stávající uživatel bez tipu jde rovnou na výsledek
+        finalizeAndShowResult();
+      }
+    }
+
+    /* ==========================================================================
+       9. KROK 3: BRÁNA PŘED VÝSLEDKEM A VALIDACE KONTAKTU
+       ========================================================================== */
+    function prepareLeadGate(isOptionalForExisting) {
+      document.getElementById('leadName').value = '';
+      document.getElementById('leadEmail').value = '';
+      document.getElementById('leadPhone').value = '';
+      document.getElementById('lead-error').classList.add('hidden');
+
+      const skipBtn = document.getElementById('btn-skip-lead-existing');
+      if (isOptionalForExisting) {
+        document.getElementById('lead-badge').textContent = 'Zařazení do krajské tipovačky';
+        document.getElementById('lead-heading').textContent = 'Chcete svůj tip zařadit do slosování o hlavní cenu?';
+        document.getElementById('lead-subtext').textContent = 'Jako stávající uživatel CeMapu můžete kontakt vyplnit dobrovolně, abychom vás v případě výhry v tipovačce mohli kontaktovat.';
+        skipBtn.classList.remove('hidden');
+      } else {
+        document.getElementById('lead-badge').textContent = 'Poslední krok před výsledkem';
+        document.getElementById('lead-heading').textContent = 'Zobrazte své skóre a vyzvedněte si odměnu';
+        document.getElementById('lead-subtext').textContent = 'Vyplňte jméno a e-mail nebo telefon, abychom vám zobrazili vyhodnocení testu a mohli vám předat odměnu na stánku CeMap.';
+        skipBtn.classList.add('hidden');
+      }
+    }
+
+    function submitLeadForm() {
+      const name = document.getElementById('leadName').value.trim();
+      const email = document.getElementById('leadEmail').value.trim();
+      const phone = document.getElementById('leadPhone').value.trim();
+      const errEl = document.getElementById('lead-error');
+      errEl.classList.add('hidden');
+
+      if (!name) {
+        errEl.textContent = 'Vyplňte prosím své jméno a příjmení.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (!email && !phone) {
+        errEl.textContent = 'Zadejte prosím alespoň e-mail nebo telefonní číslo.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errEl.textContent = 'Zadaný e-mail nemá platný formát.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      state.leadData = { name, email, phone };
+      finalizeAndShowResult();
+    }
+
+    function skipLeadForExistingUser() {
+      state.leadData = { name: "Stávající uživatel (anonymní)", email: "", phone: "" };
+      finalizeAndShowResult();
+    }
+
+    /* ==========================================================================
+       10. KROK 4: VÝSLEDKOVÁ OBRAZOVKA A ULOŽENÍ DO DATABÁZE
+       ========================================================================== */
+    function getLevelTitle(score) {
+      if (score >= 8) return "CeMap Profík";
+      if (score >= 4) return "CeMap Objevitel";
+      return "Střelec od boku";
+    }
+
+    function finalizeAndShowResult() {
+      const score = state.score;
+      const level = getLevelTitle(score);
+      const prop = getSelectedProperty();
+
+      // Uložení záznamu do úložiště
+      const leads = getStoredLeads();
+      const now = new Date();
+      const timestamp = now.toLocaleDateString('cs-CZ') + ' ' + now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+
+      const displayName = state.leadData.name || (state.isExistingUser ? "Stávající uživatel" : "Účastník");
+
+      leads.unshift({
+        id: Date.now(),
+        timestamp,
+        isExisting: state.isExistingUser,
+        name: displayName,
+        email: state.leadData.email || "",
+        phone: state.leadData.phone || "",
+        score,
+        level,
+        regionId: prop.id,
+        regionName: prop.region,
+        guessedPrice: state.guessedPrice
+      });
+
+      SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
+
+      // Vykreslení obrazovky výsledků (bez konkrétních výher)
+      document.getElementById('res-score').textContent = `${score} / ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('res-rank').textContent = level;
+      document.getElementById('res-percent').textContent = `${score * 10} %`;
+
+      if (score >= 8) {
+        document.getElementById('res-title').textContent = "Vynikající znalost realitního trhu!";
+        document.getElementById('res-desc').textContent = "Data z katastru i nástroje pro oceňování máte v malíku. Zastavte se za námi na stánku CeMap.";
+      } else if (score >= 4) {
+        document.getElementById('res-title').textContent = "Solidní základ pro práci s daty!";
+        document.getElementById('res-desc').textContent = "Spoustu věcí už znáte. Rádi vám na stánku CeMap ukážeme další funkce, které vám ušetří čas při náběrech.";
+      } else {
+        document.getElementById('res-title').textContent = "Děkujeme za účast v kvízu!";
+        document.getElementById('res-desc').textContent = "Zastavte se u našeho týmu na stánku CeMap – během 2 minut vám ukážeme, jak získat přesná data o každé nemovitosti.";
+      }
+
+      document.getElementById('res-region').textContent = state.guessedPrice !== null ? prop.region : 'Nezvoleno';
+      document.getElementById('res-tip').textContent = state.guessedPrice !== null ? formatCurrency(state.guessedPrice) : 'Přeskočeno';
+
+      switchView('view-result');
+    }
+
+    function resetKiosk() {
+      switchView('view-intro');
+    }
+
+    /* ==========================================================================
+       11. ZABEZPEČENÁ ADMINISTRACE (5x klik na logo nebo Ctrl+Shift+L, PIN 2026)
+       ========================================================================== */
+    function getAdminPin() {
+      return SafeStorage.getItem(STORAGE_KEYS.PIN) || '2026';
+    }
+
+    function setupAdminSecretTrigger() {
+      const logo = document.getElementById('logoTrigger');
+      let clickCount = 0;
+      let clickTimer = null;
+
+      logo.addEventListener('click', () => {
+        clickCount++;
+        clearTimeout(clickTimer);
+        if (clickCount >= 5) {
+          clickCount = 0;
+          openPinModal();
+        } else {
+          clickTimer = setTimeout(() => {
+            clickCount = 0;
+          }, 1800);
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+          e.preventDefault();
+          openPinModal();
+        }
+      });
+    }
+
+    function openPinModal() {
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinError').classList.add('hidden');
+      document.getElementById('pinModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('pinInput').focus(), 50);
+    }
+
+    function closePinModal() {
+      document.getElementById('pinModal').classList.add('hidden');
+    }
+
+    function verifyPin() {
+      const entered = document.getElementById('pinInput').value.trim();
+      if (entered === getAdminPin()) {
+        closePinModal();
+        openAdminDashboard();
+      } else {
+        document.getElementById('pinError').classList.remove('hidden');
+        document.getElementById('pinInput').value = '';
+        document.getElementById('pinInput').focus();
+      }
+    }
+
+    function openAdminDashboard() {
+      renderAdminStats();
+      renderLeadsTable();
+      renderPriceKeyEditor();
+      switchAdminTab('leads');
+      switchView('view-admin');
+    }
+
+    function closeAdmin() {
+      switchView('view-intro');
+    }
+
+    function switchAdminTab(tabName) {
+      const tabs = ['leads', 'key', 'settings'];
+      tabs.forEach(t => {
+        document.getElementById(`admin-tab-${t}`).classList.toggle('hidden', t !== tabName);
+        document.getElementById(`tab-btn-${t}`).classList.toggle('active', t === tabName);
+      });
+    }
+
+    function getStoredLeads() {
+      try {
+        const raw = SafeStorage.getItem(STORAGE_KEYS.LEADS);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function getPriceMap() {
+      let saved = {};
+      try {
+        const raw = SafeStorage.getItem(STORAGE_KEYS.PRICES);
+        if (raw) saved = JSON.parse(raw);
+      } catch (e) {
+        saved = {};
+      }
+      const map = {};
+      REGIONAL_PROPERTIES.forEach(p => {
+        map[p.id] = saved[p.id] !== undefined ? Number(saved[p.id]) : p.defaultPrice;
+      });
+      return map;
+    }
+
+    function renderAdminStats() {
+      const leads = getStoredLeads();
+      const total = leads.length;
+      const existing = leads.filter(l => l.isExisting).length;
+      const newLeads = total - existing;
+      const avg = total > 0
+        ? (leads.reduce((acc, l) => acc + Number(l.score || 0), 0) / total).toFixed(1)
+        : '0';
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-existing').textContent = existing;
+      document.getElementById('stat-leads').textContent = newLeads;
+      document.getElementById('stat-avg').textContent = `${avg} / 10`;
+    }
+
+    function calculateDeviation(guessed, actual) {
+      if (!guessed || !actual) return null;
+      const diffKc = guessed - actual;
+      const absPct = (Math.abs(diffKc) / actual) * 100;
+      return {
+        diffKc,
+        absPct
+      };
+    }
+
+    function renderLeadsTable() {
+      const leads = getStoredLeads();
+      const priceMap = getPriceMap();
+      const search = document.getElementById('adminSearch').value.toLowerCase().trim();
+      const regionFilter = document.getElementById('adminRegionFilter').value;
+      const sortMode = document.getElementById('adminSort').value;
+
+      // Obohacení o správnou cenu a odchylku
+      let enriched = leads.map(l => {
+        const actualPrice = priceMap[l.regionId] || null;
+        const dev = calculateDeviation(l.guessedPrice, actualPrice);
+        return { ...l, actualPrice, dev };
+      });
+
+      // Filtrování
+      enriched = enriched.filter(item => {
+        if (regionFilter !== 'ALL' && item.regionId !== regionFilter) return false;
+        if (search) {
+          const hay = `${item.name} ${item.email} ${item.phone} ${item.regionName}`.toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+        return true;
+      });
+
+      // Řazení
+      if (sortMode === 'accuracy') {
+        enriched.sort((a, b) => {
+          const pctA = a.dev ? a.dev.absPct : 999999;
+          const pctB = b.dev ? b.dev.absPct : 999999;
+          return pctA - pctB;
+        });
+      } else if (sortMode === 'score') {
+        enriched.sort((a, b) => b.score - a.score);
+      }
+
+      const tbody = document.getElementById('leadsTableBody');
+      if (enriched.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 28px; color: var(--text-muted);">Zatím nejsou k dispozici žádné záznamy odpovídající filtru.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = enriched.map(item => {
+        const contactParts = [item.email, item.phone].filter(Boolean).join('<br>');
+        const typeBadge = item.isExisting
+          ? '<span class="pill pill-blue">Uživatel</span>'
+          : '<span class="pill pill-red">Nový lead</span>';
+
+        let devHtml = '<span style="color: var(--text-light);">—</span>';
+        let rowClass = '';
+
+        if (item.dev) {
+          const sign = item.dev.diffKc > 0 ? '+' : '';
+          const pctStr = item.dev.absPct.toFixed(1).replace('.', ',');
+          const isTop = item.dev.absPct <= 5.0;
+          if (isTop) rowClass = 'best-guess';
+          devHtml = `
+            <span class="${isTop ? 'pill pill-green' : ''}" style="font-weight: 700;">
+              ${sign}${formatNumber(item.dev.diffKc)} Kč (${pctStr} %)
+            </span>
+          `;
+        }
+
+        return `
+          <tr class="${rowClass}">
+            <td style="white-space: nowrap; font-size: 0.82rem; color: var(--text-muted);">${item.timestamp}</td>
+            <td>${typeBadge}</td>
+            <td style="font-weight: 700;">${escapeHtml(item.name)}</td>
+            <td style="font-size: 0.85rem;">${contactParts || '—'}</td>
+            <td style="font-weight: 800; color: var(--cemap-blue);">${item.score} / 10</td>
+            <td><strong>${item.level}</strong></td>
+            <td>${item.guessedPrice ? escapeHtml(item.regionName) : '—'}</td>
+            <td style="font-weight: 700;">${item.guessedPrice ? formatCurrency(item.guessedPrice) : 'Přeskočeno'}</td>
+            <td>${item.guessedPrice && item.actualPrice ? formatCurrency(item.actualPrice) : '—'}</td>
+            <td>${devHtml}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* ==========================================================================
+       12. EXPORT DO CSV (UTF-8 BOM + středníky pro český Excel)
+       ========================================================================== */
+    function exportCSV() {
+      const leads = getStoredLeads();
+      if (leads.length === 0) {
+        showToast('Tabulka je prázdná, není co exportovat.');
+        return;
+      }
+      const priceMap = getPriceMap();
+
+      const headers = [
+        'Datum a čas',
+        'Typ účastníka',
+        'Jméno',
+        'E-mail',
+        'Telefon',
+        'Skóre',
+        'Úroveň',
+        'Kraj tipovačky',
+        'Tipovaná cena (Kč)',
+        'Správná cena z klíče (Kč)',
+        'Odchylka (Kč)',
+        'Odchylka (%)'
+      ];
+
+      const rows = leads.map(item => {
+        const actual = item.guessedPrice ? (priceMap[item.regionId] || '') : '';
+        const dev = item.guessedPrice ? calculateDeviation(item.guessedPrice, actual) : null;
+        return [
+          item.timestamp,
+          item.isExisting ? 'Stávající uživatel' : 'Nový lead',
+          item.name,
+          item.email,
+          item.phone,
+          `${item.score}/10`,
+          item.level,
+          item.guessedPrice ? item.regionName : '',
+          item.guessedPrice || '',
+          actual,
+          dev ? Math.round(dev.diffKc) : '',
+          dev ? dev.absPct.toFixed(2).replace('.', ',') : ''
+        ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(';');
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      link.download = `CeMap_konference_leady_${dateStamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast('CSV soubor byl úspěšně stažen.');
+    }
+
+    function promptClearData() {
+      document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.add('hidden');
+    }
+
+    function executeClearData() {
+      SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify([]));
+      closeConfirmModal();
+      renderAdminStats();
+      renderLeadsTable();
+      showToast('Všechna data účastníků byla vymazána.');
+    }
+
+    /* ==========================================================================
+       13. KLÍČ SPRÁVNÝCH CEN (14 KRAJŮ) A ZMĚNA PINU
+       ========================================================================== */
+    function renderPriceKeyEditor() {
+      const priceMap = getPriceMap();
+      const grid = document.getElementById('keyGrid');
+
+      grid.innerHTML = REGIONAL_PROPERTIES.map(prop => {
+        const currentVal = formatNumber(priceMap[prop.id]);
+        return `
+          <div class="key-item">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <strong style="color: var(--cemap-blue); font-size: 1rem;">${prop.region}</strong>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">${prop.layout}, ${prop.area}</span>
+            </div>
+            <div style="font-size: 0.88rem; font-weight: 600;">${prop.title} (${prop.location})</div>
+            <div class="key-thumbs">
+              <div>${renderPhotoMedia(prop, 0)}</div>
+              <div>${renderPhotoMedia(prop, 1)}</div>
+              <div>${renderPhotoMedia(prop, 2)}</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+              <input type="text" id="key-price-${prop.id}" class="form-control" inputmode="numeric" value="${currentVal}" oninput="formatKeyInput(this)" style="min-height: 44px; font-size: 16px;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="saveRegionPrice('${prop.id}')">Uložit</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatKeyInput(el) {
+      const digits = el.value.replace(/\D/g, '');
+      el.value = digits ? formatNumber(parseInt(digits, 10)) : '';
+    }
+
+    function saveRegionPrice(regionId) {
+      const input = document.getElementById(`key-price-${regionId}`);
+      const digits = input.value.replace(/\D/g, '');
+      const val = parseInt(digits, 10);
+      if (!val || val < 100000) {
+        showToast('Zadejte platnou cenu v Kč.');
+        return;
+      }
+
+      const priceMap = getPriceMap();
+      priceMap[regionId] = val;
+      SafeStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(priceMap));
+      renderLeadsTable();
+      showToast('Správná cena pro kraj byla uložena.');
+    }
+
+    function saveNewPin() {
+      const input = document.getElementById('newPinInput');
+      const msgEl = document.getElementById('pin-settings-msg');
+      const val = input.value.trim();
+      msgEl.classList.add('hidden');
+
+      if (!/^\d{4}$/.test(val)) {
+        msgEl.textContent = 'PIN musí obsahovat přesně 4 číslice.';
+        msgEl.classList.remove('hidden');
+        return;
+      }
+
+      SafeStorage.setItem(STORAGE_KEYS.PIN, val);
+      input.value = '';
+      showToast('Nový PIN kód byl úspěšně uložen.');
+    }
+
+    // Spuštění po načtení DOM
+    window.addEventListener('DOMContentLoaded', initApp);
+
+    // Kiosk: po prvním dotyku držet obrazovku zapnutou a uložit aplikaci pro běh bez sítě.
+    (function keepTabletReady() {
+      let wakeLock = null;
+      async function keepAwake() {
+        if (!navigator.wakeLock) return;
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (e) {
+          wakeLock = null;
+        }
+      }
+      document.addEventListener('pointerdown', keepAwake);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') keepAwake();
+      });
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('./sw.js').catch(function () {});
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
