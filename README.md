@@ -12,7 +12,7 @@ Jedna stránka pro tablet na stánku. Kvíz, tip ceny a kontakty účastníků z
 4. V nastavení tabletu vypni automatický zámek obrazovky (Auto-Lock → Nikdy). Po prvním dotyku se aplikace navíc snaží obrazovku držet zapnutou.
 5. Nepoužívej anonymní okno. V něm se kontakty po zavření smažou.
 
-Administrace je 5× klepnutí na logo. Výchozí PIN je `2026`. Na tabletu ho změň a před koncem dne exportuj kontakty do CSV. Export i seznam jsou jen na tomto zařízení.
+Administrace je 5× klepnutí na logo. Při prvním otevření si na tabletu zvolíte vlastní PIN. Ve zdrojovém kódu žádný není a kontakty z tabletu se na jiném zařízení neukážou. Před koncem dne je exportujte do CSV.
 
 ## Lokálně
 

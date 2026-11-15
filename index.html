@@ -805,7 +805,7 @@
     }
 
     /* ==========================================================================
-       11. ZAMČENÁ ADMINISTRACE (PIN 2026)
+       11. ZAMČENÁ ADMINISTRACE (PIN jen na tomto zařízení)
        ========================================================================== */
     .admin-container {
       max-width: 1080px;
@@ -1232,7 +1232,7 @@
       </div>
     </section>
 
-    <!-- ZAMČENÁ ADMINISTRACE (PIN 2026) -->
+    <!-- ZAMČENÁ ADMINISTRACE -->
     <section id="view-admin" class="admin-container hidden">
       <div class="card">
         <div class="admin-header">
@@ -1330,7 +1330,7 @@
         <div id="admin-tab-settings" class="hidden">
           <div style="max-width: 400px;">
             <h3>Změna administrátorského PIN kódu</h3>
-            <p>Výchozí PIN je <strong>2026</strong>. Zadejte nový 4místný číselný PIN kód pro vstup do administrace přes 5× klepnutí na logo CeMap.</p>
+            <p>PIN je uložený jen v tomto tabletu, ve zdrojovém kódu žádný není. Tady ho můžete změnit. Administraci otevřete 5× klepnutím na logo CeMap.</p>
             <div class="form-group">
               <label for="newPinInput" class="form-label">Nový 4místný PIN:</label>
               <input type="password" id="newPinInput" class="form-control" maxlength="4" inputmode="numeric" placeholder="••••">
@@ -1350,15 +1350,15 @@
   <!-- PIN Modal -->
   <div id="pinModal" class="modal-backdrop hidden" onclick="if(event.target===this) closePinModal()">
     <div class="modal-panel">
-      <h3 style="margin-top: 0;">Vstup pro obsluhu stánku</h3>
-      <p style="font-size: 0.92rem;">Zadejte 4místný administrátorský PIN kód:</p>
+      <h3 id="pinModalTitle" style="margin-top: 0;">Vstup pro obsluhu stánku</h3>
+      <p id="pinModalText" style="font-size: 0.92rem;">Zadejte 4místný PIN nastavený na tomto tabletu.</p>
       <div class="form-group">
         <input type="password" id="pinInput" class="form-control" maxlength="4" inputmode="numeric" placeholder="••••" style="text-align: center; font-size: 22px; letter-spacing: 8px;" onkeydown="if(event.key==='Enter') verifyPin()">
         <div id="pinError" class="error-msg hidden" style="text-align: center;">Nesprávný PIN kód.</div>
       </div>
       <div style="display: flex; gap: 10px;">
         <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closePinModal()">Zrušit</button>
-        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="verifyPin()">Odemknout</button>
+        <button type="button" id="pinUnlockBtn" class="btn btn-primary" style="flex: 1;" onclick="verifyPin()">Odemknout</button>
       </div>
     </div>
   </div>
@@ -2358,10 +2358,11 @@
     }
 
     /* ==========================================================================
-       11. ZABEZPEČENÁ ADMINISTRACE (5x klik na logo nebo Ctrl+Shift+L, PIN 2026)
+       11. ZABEZPEČENÁ ADMINISTRACE (5x klik na logo nebo Ctrl+Shift+L)
        ========================================================================== */
     function getAdminPin() {
-      return SafeStorage.getItem(STORAGE_KEYS.PIN) || '2026';
+      const saved = SafeStorage.getItem(STORAGE_KEYS.PIN);
+      return /^\d{4}$/.test(saved || '') ? saved : null;
     }
 
     function setupAdminSecretTrigger() {
@@ -2391,6 +2392,14 @@
     }
 
     function openPinModal() {
+      const creating = !getAdminPin();
+      document.getElementById('pinModalTitle').textContent = creating
+        ? 'Nastavte PIN obsluhy'
+        : 'Vstup pro obsluhu stánku';
+      document.getElementById('pinModalText').textContent = creating
+        ? 'Na tomto tabletu ještě není PIN. Zvolte 4 číslice. Zůstanou jen v tomto prohlížeči.'
+        : 'Zadejte 4místný PIN nastavený na tomto tabletu.';
+      document.getElementById('pinUnlockBtn').textContent = creating ? 'Uložit a otevřít' : 'Odemknout';
       document.getElementById('pinInput').value = '';
       document.getElementById('pinError').classList.add('hidden');
       document.getElementById('pinModal').classList.remove('hidden');
@@ -2403,11 +2412,25 @@
 
     function verifyPin() {
       const entered = document.getElementById('pinInput').value.trim();
-      if (entered === getAdminPin()) {
+      const errorEl = document.getElementById('pinError');
+      if (!/^\d{4}$/.test(entered)) {
+        errorEl.textContent = 'PIN musí mít přesně 4 číslice.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      const current = getAdminPin();
+      if (!current) {
+        SafeStorage.setItem(STORAGE_KEYS.PIN, entered);
+        closePinModal();
+        openAdminDashboard();
+        return;
+      }
+      if (entered === current) {
         closePinModal();
         openAdminDashboard();
       } else {
-        document.getElementById('pinError').classList.remove('hidden');
+        errorEl.textContent = 'Nesprávný PIN kód.';
+        errorEl.classList.remove('hidden');
         document.getElementById('pinInput').value = '';
         document.getElementById('pinInput').focus();
       }
@@ -2524,7 +2547,7 @@
       }
 
       tbody.innerHTML = enriched.map(item => {
-        const contactParts = [item.email, item.phone].filter(Boolean).join('<br>');
+        const contactParts = [item.email, item.phone].filter(Boolean).map(escapeHtml).join('<br>');
         const typeBadge = item.isExisting
           ? '<span class="pill pill-blue">Uživatel</span>'
           : '<span class="pill pill-red">Nový lead</span>';
@@ -2546,12 +2569,12 @@
 
         return `
           <tr class="${rowClass}">
-            <td style="white-space: nowrap; font-size: 0.82rem; color: var(--text-muted);">${item.timestamp}</td>
+            <td style="white-space: nowrap; font-size: 0.82rem; color: var(--text-muted);">${escapeHtml(String(item.timestamp || ''))}</td>
             <td>${typeBadge}</td>
             <td style="font-weight: 700;">${escapeHtml(item.name)}</td>
             <td style="font-size: 0.85rem;">${contactParts || '—'}</td>
-            <td style="font-weight: 800; color: var(--cemap-blue);">${item.score} / 10</td>
-            <td><strong>${item.level}</strong></td>
+            <td style="font-weight: 800; color: var(--cemap-blue);">${escapeHtml(String(item.score ?? ''))} / 10</td>
+            <td><strong>${escapeHtml(item.level)}</strong></td>
             <td>${item.guessedPrice ? escapeHtml(item.regionName) : '—'}</td>
             <td style="font-weight: 700;">${item.guessedPrice ? formatCurrency(item.guessedPrice) : 'Přeskočeno'}</td>
             <td>${item.guessedPrice && item.actualPrice ? formatCurrency(item.actualPrice) : '—'}</td>
@@ -2573,6 +2596,12 @@
     /* ==========================================================================
        12. EXPORT DO CSV (UTF-8 BOM + středníky pro český Excel)
        ========================================================================== */
+    function csvCell(val) {
+      let text = String(val ?? '');
+      if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
     function exportCSV() {
       const leads = getStoredLeads();
       if (leads.length === 0) {
@@ -2612,7 +2641,7 @@
           actual,
           dev ? Math.round(dev.diffKc) : '',
           dev ? dev.absPct.toFixed(2).replace('.', ',') : ''
-        ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(';');
+        ].map(csvCell).join(';');
       });
 
       const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
