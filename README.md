@@ -14,6 +14,8 @@ Jedna stránka pro tablet na stánku. Kvíz, tip ceny a kontakty účastníků z
 
 Administrace je 5× klepnutí na logo. Při prvním otevření si na tabletu zvolíte vlastní PIN. Ve zdrojovém kódu žádný není a kontakty z tabletu se na jiném zařízení neukážou. Před koncem dne je exportujte do CSV.
 
+Dokud je stránka na tabletu otevřená a online, nové kontakty odcházejí každé 2 hodiny na monika@cemap.cz. Doručení zajišťuje FormSubmit. Při prvním odeslání přijde na tu adresu potvrzovací e-mail a je potřeba ho odkliknout, jinak souhrny nedorazí.
+
 ## Lokálně
 
 ```bash
