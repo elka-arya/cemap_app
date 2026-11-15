@@ -602,9 +602,17 @@
 
     .gallery-thumbs {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
       margin-top: 10px;
+    }
+
+    .prop-source {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--cemap-blue);
     }
 
     .thumb-btn {
@@ -1098,7 +1106,7 @@
     <section id="view-tip" class="card hidden">
       <div class="intro-badge" style="background-color: var(--cemap-red-soft); color: var(--cemap-red);">Bonusová krajská tipovačka</div>
       <h2>Odhadněte tržní cenu nemovitosti ve vašem kraji</h2>
-      <p>Vyberte kraj, prohlédněte si fotografie i parametry reálné nemovitosti a tipněte její tržní cenu. Nejpřesnější odhad vyhrává hlavní cenu!</p>
+      <p>Vyberte kraj, prohlédněte si fotografie i parametry reálné nemovitosti a tipněte její nabídkovou cenu. Správný tip je v toleranci ±3 %.</p>
 
       <div class="form-group">
         <label for="regionSelect" class="form-label">Vyberte kraj ČR:</label>
@@ -1114,12 +1122,12 @@
           <span id="prop-region-badge" class="pill pill-blue"></span>
         </div>
 
-        <!-- Galerie 3 fotografií -->
+        <!-- Galerie fotografií vybraného kraje -->
         <div class="gallery-main" onclick="openLightbox()" title="Kliknutím zvětšíte fotografii">
           <button type="button" class="gallery-nav gallery-prev" onclick="event.stopPropagation(); changePhoto(-1)" aria-label="Předchozí fotografie">‹</button>
           <div id="gallery-main-stage" style="width: 100%; height: 100%;"></div>
           <button type="button" class="gallery-nav gallery-next" onclick="event.stopPropagation(); changePhoto(1)" aria-label="Další fotografie">›</button>
-          <div id="gallery-caption" class="gallery-caption-badge">1 / 3 – Exteriér</div>
+          <div id="gallery-caption" class="gallery-caption-badge">1 / 5</div>
           <div class="gallery-zoom-hint">🔍 Zvětšit</div>
         </div>
 
@@ -1144,6 +1152,7 @@
             <div id="spec-owner" class="spec-val">-</div>
           </div>
         </div>
+        <a id="prop-source" class="prop-source" href="https://www.sreality.cz" target="_blank" rel="noopener noreferrer">Nabídka na Sreality</a>
       </div>
 
       <div class="form-group">
@@ -1223,9 +1232,13 @@
             <span style="color: var(--text-muted); font-weight: 600;">Vybraný kraj tipovačky:</span>
             <span id="res-region" style="font-weight: 700;">-</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
             <span style="color: var(--text-muted); font-weight: 600;">Váš odhad tržní ceny:</span>
             <span id="res-tip" style="font-weight: 800; color: var(--cemap-red);">Přeskočeno</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+            <span style="color: var(--text-muted); font-weight: 600;">Vyhodnocení tipu:</span>
+            <span id="res-tip-verdict" style="font-weight: 800;">—</span>
           </div>
         </div>
 
@@ -1384,7 +1397,7 @@
     <div class="lightbox-panel">
       <div id="lightboxStage" class="lightbox-media"></div>
       <div class="lightbox-bar">
-        <div id="lightboxCaption" style="font-weight: 700; font-size: 0.95rem;">1 / 3 – Exteriér</div>
+        <div id="lightboxCaption" style="font-weight: 700; font-size: 0.95rem;">1 / 5</div>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn btn-outline btn-sm" onclick="changeLightboxPhoto(-1)">‹ Předchozí</button>
           <button type="button" class="btn btn-outline btn-sm" onclick="changeLightboxPhoto(1)">Další ›</button>
@@ -1436,7 +1449,7 @@
 
     const STORAGE_KEYS = {
       LEADS: 'cemap_quiz_leads_v1',
-      PRICES: 'cemap_quiz_prices_v1',
+      PRICES: 'cemap_quiz_prices_v2',
       PIN: 'cemap_quiz_pin_v1',
       MAIL: 'cemap_quiz_mail_v1'
     };
@@ -1715,245 +1728,581 @@
     }
 
     /* ==========================================================================
-       4. DATABÁZE 14 KRAJŮ ČR (Parametry, 3 fotografie s připraveným url: "", ceny)
+       4. DATABÁZE 14 KRAJŮ ČR (nabídky ze Sreality, 5 fotografií, cena inzerátu)
        ========================================================================== */
     const REGIONAL_PROPERTIES = [
       {
-        id: "praha",
-        region: "Hlavní město Praha",
-        title: "Byt 3+kk s lodžií v cihlové novostavbě",
-        location: "Praha 5 – Smíchov",
-        layout: "3+kk",
-        area: "78 m²",
-        state: "Novostavba",
-        ownership: "Osobní",
-        defaultPrice: 12450000,
-        theme: { wall: "#ffffff", roof: "#334155", accent: "#246B96", sky: "#bae6fd", floor: "#d6c3a5" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "praha",
+        "region": "Hlavní město Praha",
+        "title": "Byt 2+kk 43 m²",
+        "location": "Praha – Vysočany – Čerpadlová",
+        "layout": "2+kk",
+        "area": "43 m²",
+        "state": "Novostavba",
+        "ownership": "Osobní",
+        "defaultPrice": 6790000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/2+kk/praha-vysocany-cerpadlova/2234683468",
+        "theme": {
+          "wall": "#ffffff",
+          "roof": "#334155",
+          "accent": "#246B96",
+          "sky": "#bae6fd",
+          "floor": "#d6c3a5"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_C/kO1NtbE1zwLuBeUQIHt8ly/c6b3.mpo?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_C/kO1NtbE1zwB8KrpUSIHt8l4/97be.mpo?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_C/kO1NtbE1zwLuBeUNIHt8r1/c3af.mpo?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_C/kO1NtbE1zwCCiLOUNIHt8uQ/cef2.mpo?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_C/kO1NtbE1zwB8KrptgIHt8or/02c1.mpo?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "stredocesky",
-        region: "Středočeský kraj",
-        title: "Samostatný rodinný dům se zahradou",
-        location: "Říčany u Prahy",
-        layout: "4+kk",
-        area: "136 m²",
-        state: "Velmi dobrý",
-        ownership: "Osobní",
-        defaultPrice: 11800000,
-        theme: { wall: "#fefce8", roof: "#991b1b", accent: "#D9271E", sky: "#bae6fd", floor: "#cbd5e1" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "stredocesky",
+        "region": "Středočeský kraj",
+        "title": "Byt 4+kk 142 m²",
+        "location": "Úvaly – 5. května",
+        "layout": "4+kk",
+        "area": "142 m²",
+        "state": "Novostavba",
+        "ownership": "Osobní",
+        "defaultPrice": 14980000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/4+kk/uvaly-uvaly-5-kvetna/269459532",
+        "theme": {
+          "wall": "#fefce8",
+          "roof": "#991b1b",
+          "accent": "#D9271E",
+          "sky": "#bae6fd",
+          "floor": "#cbd5e1"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qE_D/nPYADvcUkmCfYovWnHoGJOm/dec2.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qE_D/kPVqmweP7JB4z4nBfBHoGJPB/08b6.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qE_D/kPVqmweP7JDZwL3W4HoGJPW/33aa.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qE_D/kPVqmweP7JB4z4nBx5HoGJPt/e318.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qE_D/nPYADvcUkmBcG9PBgKHoGJQH/de5d.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "jihocesky",
-        region: "Jihočeský kraj",
-        title: "Světlý byt 3+1 po kompletní rekonstrukci",
-        location: "České Budějovice – Rožnov",
-        layout: "3+1",
-        area: "74 m²",
-        state: "Po rekonstrukci",
-        ownership: "Osobní",
-        defaultPrice: 5490000,
-        theme: { wall: "#f8fafc", roof: "#475569", accent: "#246B96", sky: "#e0f2fe", floor: "#e2d1b3" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "jihocesky",
+        "region": "Jihočeský kraj",
+        "title": "Byt 2+kk 43 m²",
+        "location": "Černá v Pošumaví",
+        "layout": "2+kk",
+        "area": "43 m²",
+        "state": "Novostavba",
+        "ownership": "Osobní",
+        "defaultPrice": 5790000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/2+kk/cerna-v-posumavi-cerna-v-posumavi-/3790647372",
+        "theme": {
+          "wall": "#f8fafc",
+          "roof": "#475569",
+          "accent": "#246B96",
+          "sky": "#e0f2fe",
+          "floor": "#e2d1b3"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkBQkMFKqZpIUjNXR/db9c.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkDyuEmNv9iIUjNX5/0ca2.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TnJSEFIH1IUjNYe/ac35.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TDrngKBzMdIUjNZD/c092.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TDi9WNFlAIIUjNZ1/d255.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "plzensky",
-        region: "Plzeňský kraj",
-        title: "Cihlový byt 2+kk s balkonem a garáží",
-        location: "Plzeň – Slovany",
-        layout: "2+kk",
-        area: "56 m²",
-        state: "Velmi dobrý",
-        ownership: "Osobní",
-        defaultPrice: 4850000,
-        theme: { wall: "#fffbeb", roof: "#7c2d12", accent: "#246B96", sky: "#bae6fd", floor: "#d6c3a5" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "plzensky",
+        "region": "Plzeňský kraj",
+        "title": "Byt 3+1 70 m²",
+        "location": "Dobřany – Loudů",
+        "layout": "3+1",
+        "area": "70 m²",
+        "state": "Dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 5499000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/3+1/dobrany-dobrany-loudu/1478893644",
+        "theme": {
+          "wall": "#fffbeb",
+          "roof": "#7c2d12",
+          "accent": "#246B96",
+          "sky": "#bae6fd",
+          "floor": "#d6c3a5"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_E/kcKfrMAkFCpZ9wEMUH6uWHt/5c66.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_E/kcKfrMAkFCDh88H5UH6uWIU/ba4d.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_E/kcKfrMAkFCHDToIisH6uWI4/7ef9.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_E/nCR9NVflLBkanYF7ZH6uWJh/3511.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_E/kcKfrMAkFCHDToInRH6uWKM/3c5b.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "karlovarsky",
-        region: "Karlovarský kraj",
-        title: "Byt 3+1 v lázeňské zástavbě",
-        location: "Karlovy Vary – Tuhnice",
-        layout: "3+1",
-        area: "82 m²",
-        state: "Dobrý stav",
-        ownership: "Osobní",
-        defaultPrice: 4150000,
-        theme: { wall: "#fef2f2", roof: "#7f1d1d", accent: "#D9271E", sky: "#e0f2fe", floor: "#cbd5e1" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "karlovarsky",
+        "region": "Karlovarský kraj",
+        "title": "Byt 4+1 112 m²",
+        "location": "Karlovy Vary – Varšavská",
+        "layout": "4+1",
+        "area": "112 m²",
+        "state": "Po rekonstrukci",
+        "ownership": "Osobní",
+        "defaultPrice": 7790000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/4+1/karlovy-vary-karlovy-vary-varsavska/1547051084",
+        "theme": {
+          "wall": "#fef2f2",
+          "roof": "#7f1d1d",
+          "accent": "#D9271E",
+          "sky": "#e0f2fe",
+          "floor": "#cbd5e1"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkCJCefGKbuIVtkaZ/0a8a.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_A/kcKfrMAkFCpZ9wGctH7O2Mz/f1aa.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_A/kcKfrMAkFDbqUhPp4H7PKB0/dcff.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_A/kcKfrMAkFnIwlLrBH7O027/3896.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_A/kcKfrMAkFDzJCCMJPH7PKBu/3491.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "ustecky",
-        region: "Ústecký kraj",
-        title: "Zrekonstruovaný byt 3+1 s lodžií",
-        location: "Ústí nad Labem – Severní Terasa",
-        layout: "3+1",
-        area: "71 m²",
-        state: "Po rekonstrukci",
-        ownership: "Osobní",
-        defaultPrice: 3290000,
-        theme: { wall: "#f1f5f9", roof: "#334155", accent: "#246B96", sky: "#bae6fd", floor: "#e2d1b3" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "ustecky",
+        "region": "Ústecký kraj",
+        "title": "Byt 2+kk 44 m²",
+        "location": "Děčín I-Děčín – Zámecká",
+        "layout": "2+kk",
+        "area": "44 m²",
+        "state": "Dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 2350000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/2+kk/decin-decin-i-decin-zamecka/2627498060",
+        "theme": {
+          "wall": "#f1f5f9",
+          "roof": "#334155",
+          "accent": "#246B96",
+          "sky": "#bae6fd",
+          "floor": "#e2d1b3"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/kb4JgeTdkCfcGaGyiBIXpEa2/f8f0.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/nQO0xPd86TCl5yx0qmIXpEbn/379f.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/kb4JgeTdkBcInfG6ypIXpEcT/749c.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/nQO0xPd86TDyA6jDa7VIXpEdA/3695.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/kb4JgeTdkBQkMFO2UXIXpEdz/e0bb.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "liberecky",
-        region: "Liberecký kraj",
-        title: "Moderní byt 2+kk s výhledem na Ještěd",
-        location: "Liberec – Rochlice",
-        layout: "2+kk",
-        area: "54 m²",
-        state: "Novostavba",
-        ownership: "Osobní",
-        defaultPrice: 4690000,
-        theme: { wall: "#ffffff", roof: "#1e293b", accent: "#246B96", sky: "#bae6fd", floor: "#d6c3a5" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "liberecky",
+        "region": "Liberecký kraj",
+        "title": "Byt 2+1 55 m²",
+        "location": "Liberec XV-Starý Harcov – Svobody",
+        "layout": "2+1",
+        "area": "55 m²",
+        "state": "Po rekonstrukci",
+        "ownership": "Osobní",
+        "defaultPrice": 4790000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/2+1/liberec-liberec-xv-stary-harcov-svobody/264590156",
+        "theme": {
+          "wall": "#ffffff",
+          "roof": "#1e293b",
+          "accent": "#246B96",
+          "sky": "#bae6fd",
+          "floor": "#d6c3a5"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qA_D/nCTUX1iX5CFdAH8APGYUQwK/e60b.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qE_A/kO7lxrd9zlCcay5VyxHYZT4R/631b.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qA_D/kcHp2YdDtEDuRmBLloGYUQzw/bc35.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qA_D/kcHp2YdDtCJexH2xuGYUQ2z/9802.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qA_D/kcHp2YdDtzYqG2fKGYUQ5M/cd1b.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "kralovehradecky",
-        region: "Královéhradecký kraj",
-        title: "Byt 3+kk v širším centru města",
-        location: "Hradec Králové – Pražské Předměstí",
-        layout: "3+kk",
-        area: "76 m²",
-        state: "Velmi dobrý",
-        ownership: "Osobní",
-        defaultPrice: 6350000,
-        theme: { wall: "#fefce8", roof: "#475569", accent: "#D9271E", sky: "#e0f2fe", floor: "#cbd5e1" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "kralovehradecky",
+        "region": "Královéhradecký kraj",
+        "title": "Byt 3+1 71 m²",
+        "location": "Jičín – Nové Město – Na Jihu",
+        "layout": "3+1",
+        "area": "71 m²",
+        "state": "Dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 5190000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/3+1/jicin-nove-mesto-na-jihu/2309800012",
+        "theme": {
+          "wall": "#fefce8",
+          "roof": "#475569",
+          "accent": "#D9271E",
+          "sky": "#e0f2fe",
+          "floor": "#cbd5e1"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_B/nCR9NVflLrfprggFIB9HLm/9c7f.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_B/nCR9NVflLnoRVMBiIB9HTW/ced6.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_B/nCR9NVflLrfprggFIB9HMH/6e58.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_B/nCR9NVflLChOIjYa5IB9HMm/2dfa.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qG_B/kcKfrMAkFCDh88UoUIB9HNL/ffbf.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "pardubicky",
-        region: "Pardubický kraj",
-        title: "Prostorný byt 3+1 s balkonem",
-        location: "Pardubice – Zelené Předměstí",
-        layout: "3+1",
-        area: "79 m²",
-        state: "Po rekonstrukci",
-        ownership: "Osobní",
-        defaultPrice: 5790000,
-        theme: { wall: "#f8fafc", roof: "#7c2d12", accent: "#246B96", sky: "#bae6fd", floor: "#e2d1b3" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "pardubicky",
+        "region": "Pardubický kraj",
+        "title": "Byt 3+kk 70 m²",
+        "location": "Horní Jelení – A. Zápotockého",
+        "layout": "3+kk",
+        "area": "70 m²",
+        "state": "Velmi dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 3586000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/3+kk/horni-jeleni-horni-jeleni-a-zapotockeho/1586065484",
+        "theme": {
+          "wall": "#f8fafc",
+          "roof": "#7c2d12",
+          "accent": "#246B96",
+          "sky": "#bae6fd",
+          "floor": "#e2d1b3"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdk3RI9FDG9IUaMHe/7883.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkbxLFFeMcIUaMIO/d61f.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TCEwoKBuBzIUaMJK/33fd.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TDhsIbNhPHIUaMJx/da5d.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkB87eWFcPzIUaMKU/b5bd.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "vysocina",
-        region: "Kraj Vysočina",
-        title: "Rodinný dům 4+1 se zahradou a garáží",
-        location: "Jihlava – Helenín",
-        layout: "4+1",
-        area: "128 m²",
-        state: "Velmi dobrý",
-        ownership: "Osobní",
-        defaultPrice: 6890000,
-        theme: { wall: "#fffbeb", roof: "#991b1b", accent: "#246B96", sky: "#e0f2fe", floor: "#d6c3a5" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "vysocina",
+        "region": "Kraj Vysočina",
+        "title": "Byt 2+1 69 m²",
+        "location": "Jihlava – Zahradní",
+        "layout": "2+1",
+        "area": "69 m²",
+        "state": "Velmi dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 5490000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/2+1/jihlava-jihlava-zahradni/2597920844",
+        "theme": {
+          "wall": "#fffbeb",
+          "roof": "#991b1b",
+          "accent": "#246B96",
+          "sky": "#e0f2fe",
+          "floor": "#d6c3a5"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_C/nOdL4BtPEyDrQHrCpjHzgxyT/5f3e.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_C/k0OqwCKRIhAnDbEHzgxyz/7f36.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_C/k0OqwCKREB0TcD9HHzgx0J/3aaf.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_C/k0OqwCKRCO7AF8OHzgx0n/5622.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qF_C/nOdL4BtPEyvOo9VlHzgx1F/54e4.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "jihomoravsky",
-        region: "Jihomoravský kraj",
-        title: "Byt 2+kk s terasou v novostavbě",
-        location: "Brno – Královo Pole",
-        layout: "2+kk",
-        area: "58 m²",
-        state: "Novostavba",
-        ownership: "Osobní",
-        defaultPrice: 7190000,
-        theme: { wall: "#ffffff", roof: "#334155", accent: "#D9271E", sky: "#bae6fd", floor: "#cbd5e1" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "jihomoravsky",
+        "region": "Jihomoravský kraj",
+        "title": "Byt 2+kk 37 m²",
+        "location": "Brno – Trnitá – Štěpánská",
+        "layout": "2+kk",
+        "area": "37 m²",
+        "state": "Velmi dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 6190000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/2+kk/brno-trnita-stepanska/1129889868",
+        "theme": {
+          "wall": "#ffffff",
+          "roof": "#334155",
+          "accent": "#D9271E",
+          "sky": "#bae6fd",
+          "floor": "#cbd5e1"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TBgJSgErNAITZD0n/9d04.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TDrngKBBzJITZD1Q/bf94.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkCJCefE7thITZD12/e8e9.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkBQkMFJE48ITZD2a/345e.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkCJCefE7tdITZD3L/834f.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "olomoucky",
-        region: "Olomoucký kraj",
-        title: "Cihlový byt 3+1 nedaleko centra",
-        location: "Olomouc – Nová Ulice",
-        layout: "3+1",
-        area: "77 m²",
-        state: "Po rekonstrukci",
-        ownership: "Osobní",
-        defaultPrice: 5650000,
-        theme: { wall: "#fefce8", roof: "#7f1d1d", accent: "#246B96", sky: "#e0f2fe", floor: "#e2d1b3" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "olomoucky",
+        "region": "Olomoucký kraj",
+        "title": "Byt 2+kk 57 m²",
+        "location": "Olomouc – Nová Ulice – Foerstrova",
+        "layout": "2+kk",
+        "area": "57 m²",
+        "state": "Velmi dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 4750000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/2+kk/olomouc-nova-ulice-foerstrova/1143177292",
+        "theme": {
+          "wall": "#fefce8",
+          "roof": "#7f1d1d",
+          "accent": "#246B96",
+          "sky": "#e0f2fe",
+          "floor": "#e2d1b3"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qC_A/kQMlcCt5zmChFvGDlSGzdYGq/cc99.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qC_A/kQMlcCt5zmBDp4mDjHGzdkqA/ba5e.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qC_A/nO2CysqjGrC2szhIP1Gzdkqh/ed84.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qC_A/nO2CysqjGrBgjUXFSgGzdkrC/7250.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qC_A/kQMlcCt5zmBDkXaFqIGzdkrj/3709.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "zlinsky",
-        region: "Zlínský kraj",
-        title: "Byt 3+kk s lodžií v klidné lokalitě",
-        location: "Zlín – Jižní Svahy",
-        layout: "3+kk",
-        area: "72 m²",
-        state: "Velmi dobrý",
-        ownership: "Osobní",
-        defaultPrice: 4950000,
-        theme: { wall: "#f8fafc", roof: "#334155", accent: "#D9271E", sky: "#bae6fd", floor: "#d6c3a5" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "zlinsky",
+        "region": "Zlínský kraj",
+        "title": "Byt 3+1 58 m²",
+        "location": "Uherské Hradiště – Tř. Maršála Malinovského",
+        "layout": "3+1",
+        "area": "58 m²",
+        "state": "Dobrý",
+        "ownership": "Osobní",
+        "defaultPrice": 4490000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/3+1/uherske-hradiste-uherske-hradiste-tr-marsala-malinovskeho/3761999948",
+        "theme": {
+          "wall": "#f8fafc",
+          "roof": "#334155",
+          "accent": "#D9271E",
+          "sky": "#bae6fd",
+          "floor": "#d6c3a5"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/nQO0xPd86TDMnNb60aIXeVDK/696f.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/kb4JgeTdk3RI9URIXeVEB/583a.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/nQO0xPd86TDMnNb4RbIXeVE1/89fc.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/nQO0xPd86TBVyhhDDC2IXeVFu/f01c.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/nQO0xPd86TBjrrQBDn2IXeVGi/031a.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       },
       {
-        id: "moravskoslezsky",
-        region: "Moravskoslezský kraj",
-        title: "Byt 3+1 po zdařilé rekonstrukci",
-        location: "Ostrava – Poruba",
-        layout: "3+1",
-        area: "73 m²",
-        state: "Po rekonstrukci",
-        ownership: "Osobní",
-        defaultPrice: 3890000,
-        theme: { wall: "#f1f5f9", roof: "#1e293b", accent: "#246B96", sky: "#e0f2fe", floor: "#cbd5e1" },
-        photos: [
-          { label: "Exteriér domu", url: "" },
-          { label: "Obývací pokoj", url: "" },
-          { label: "Moderní kuchyně", url: "" }
+        "id": "moravskoslezsky",
+        "region": "Moravskoslezský kraj",
+        "title": "Byt 3+kk 52 m²",
+        "location": "Havířov – Podlesí – Kosmonautů",
+        "layout": "3+kk",
+        "area": "52 m²",
+        "state": "Po rekonstrukci",
+        "ownership": "Osobní",
+        "defaultPrice": 3650000,
+        "listingUrl": "https://www.sreality.cz/detail/prodej/byt/3+kk/havirov-podlesi-kosmonautu/2199679052",
+        "theme": {
+          "wall": "#f1f5f9",
+          "roof": "#1e293b",
+          "accent": "#246B96",
+          "sky": "#e0f2fe",
+          "floor": "#cbd5e1"
+        },
+        "photos": [
+          {
+            "label": "Fotografie 1",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_C/kb4JgeTdk3RI9GMJqIW05D9/2cc8.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 2",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TCEwoKCshSIW05KY/3b07.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 3",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TBjrrQl4ZIW05O8/6ad6.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 4",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/kb4JgeTdkC4TclGepjIW05Tx/2cb7.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          },
+          {
+            "label": "Fotografie 5",
+            "url": "https://d18-a.sdn.cz/d_18/c_img_qH_B/nQO0xPd86TCEwoKCuOtIW05Ym/455b.jpeg?fl=res,1200,1200,1|shr,,20|jpg,80"
+          }
         ]
       }
     ];
@@ -2152,12 +2501,14 @@
       return REGIONAL_PROPERTIES.find(p => p.id === state.selectedRegionId) || REGIONAL_PROPERTIES[0];
     }
 
+    const PRICE_TOLERANCE_PCT = 3;
+
     function renderPhotoMedia(prop, photoIdx) {
       const photoObj = prop.photos[photoIdx];
       if (photoObj && photoObj.url && photoObj.url.trim() !== '') {
-        return `<img src="${photoObj.url}" alt="${photoObj.label}" onerror="this.style.display='none'">`;
+        return `<img src="${escapeHtml(photoObj.url)}" alt="${escapeHtml(photoObj.label)}">`;
       }
-      return buildArchitecturalSVG(PHOTO_TYPES[photoIdx], prop.theme);
+      return buildArchitecturalSVG(PHOTO_TYPES[photoIdx] || 'living', prop.theme);
     }
 
     function onRegionChange() {
@@ -2173,9 +2524,11 @@
       document.getElementById('spec-area').textContent = prop.area;
       document.getElementById('spec-state').textContent = prop.state;
       document.getElementById('spec-owner').textContent = prop.ownership;
+      const source = document.getElementById('prop-source');
+      source.href = prop.listingUrl || 'https://www.sreality.cz';
 
-      // Vykreslení 3 náhledů
       const thumbsContainer = document.getElementById('gallery-thumbs');
+      thumbsContainer.style.gridTemplateColumns = `repeat(${prop.photos.length}, minmax(0, 1fr))`;
       thumbsContainer.innerHTML = '';
       prop.photos.forEach((p, idx) => {
         const btn = document.createElement('button');
@@ -2196,7 +2549,8 @@
     }
 
     function changePhoto(delta) {
-      state.activePhotoIdx = (state.activePhotoIdx + delta + 3) % 3;
+      const count = getSelectedProperty().photos.length;
+      state.activePhotoIdx = (state.activePhotoIdx + delta + count) % count;
       updateGalleryStage();
     }
 
@@ -2204,7 +2558,7 @@
       const prop = getSelectedProperty();
       const idx = state.activePhotoIdx;
       document.getElementById('gallery-main-stage').innerHTML = renderPhotoMedia(prop, idx);
-      document.getElementById('gallery-caption').textContent = `${idx + 1} / 3 – ${prop.photos[idx].label}`;
+      document.getElementById('gallery-caption').textContent = `${idx + 1} / ${prop.photos.length} – ${prop.photos[idx].label}`;
 
       const thumbs = document.querySelectorAll('#gallery-thumbs .thumb-btn');
       thumbs.forEach((t, i) => t.classList.toggle('active', i === idx));
@@ -2229,7 +2583,7 @@
       const prop = getSelectedProperty();
       const idx = state.activePhotoIdx;
       document.getElementById('lightboxStage').innerHTML = renderPhotoMedia(prop, idx);
-      document.getElementById('lightboxCaption').textContent = `${prop.region} (${idx + 1} / 3 – ${prop.photos[idx].label})`;
+      document.getElementById('lightboxCaption').textContent = `${prop.region} (${idx + 1} / ${prop.photos.length} – ${prop.photos[idx].label})`;
     }
 
     function submitTip(skipped) {
@@ -2377,6 +2731,20 @@
 
       document.getElementById('res-region').textContent = state.guessedPrice !== null ? prop.region : 'Nezvoleno';
       document.getElementById('res-tip').textContent = state.guessedPrice !== null ? formatCurrency(state.guessedPrice) : 'Přeskočeno';
+      const verdict = document.getElementById('res-tip-verdict');
+      const dev = state.guessedPrice !== null
+        ? calculateDeviation(state.guessedPrice, getPriceMap()[prop.id])
+        : null;
+      if (!dev) {
+        verdict.textContent = 'Přeskočeno';
+        verdict.style.color = 'var(--text-muted)';
+      } else if (dev.absPct <= PRICE_TOLERANCE_PCT) {
+        verdict.textContent = 'V toleranci ±3 %';
+        verdict.style.color = 'var(--cemap-blue)';
+      } else {
+        verdict.textContent = 'Mimo toleranci ±3 %';
+        verdict.style.color = 'var(--cemap-red)';
+      }
 
       switchView('view-result');
     }
@@ -2734,7 +3102,7 @@
         if (item.dev) {
           const sign = item.dev.diffKc > 0 ? '+' : '';
           const pctStr = item.dev.absPct.toFixed(1).replace('.', ',');
-          const isTop = item.dev.absPct <= 5.0;
+          const isTop = item.dev.absPct <= PRICE_TOLERANCE_PCT;
           if (isTop) rowClass = 'best-guess';
           devHtml = `
             <span class="${isTop ? 'pill pill-green' : ''}" style="font-weight: 700;">
@@ -2868,10 +3236,8 @@
               <span style="font-size: 0.8rem; color: var(--text-muted);">${prop.layout}, ${prop.area}</span>
             </div>
             <div style="font-size: 0.88rem; font-weight: 600;">${prop.title} (${prop.location})</div>
-            <div class="key-thumbs">
-              <div>${renderPhotoMedia(prop, 0)}</div>
-              <div>${renderPhotoMedia(prop, 1)}</div>
-              <div>${renderPhotoMedia(prop, 2)}</div>
+            <div class="key-thumbs" style="grid-template-columns: repeat(${prop.photos.length}, minmax(0, 1fr));">
+              ${prop.photos.map((_, photoIdx) => `<div>${renderPhotoMedia(prop, photoIdx)}</div>`).join('')}
             </div>
             <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
               <input type="text" id="key-price-${prop.id}" class="form-control" inputmode="numeric" value="${currentVal}" oninput="formatKeyInput(this)" style="min-height: 44px; font-size: 16px;">

@@ -1,4 +1,4 @@
-const CACHE = "cemap-kviz-v7";
+const CACHE = "cemap-kviz-v8";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,14 +32,20 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (response && response.ok) {
+        if (response && (response.ok || response.type === "opaque")) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         }
         return response;
       })
       .catch(() =>
-        caches.match(event.request).then((cached) => cached || caches.match("./index.html"))
+        caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.destination === "image") {
+            return new Response("", { status: 404 });
+          }
+          return caches.match("./index.html");
+        })
       )
   );
 });
