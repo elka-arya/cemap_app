@@ -1290,7 +1290,7 @@
             </select>
           </div>
 
-          <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů se posílá na monika@cemap.cz každé 2 hodiny, dokud je tahle stránka otevřená a online.</p>
+          <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">E-maily na monika@cemap.cz se odešlou jen 19. 11. 2026, a to každé 2 hodiny, dokud je stránka otevřená a online.</p>
           <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 14px;">
             <button type="button" class="btn btn-primary btn-sm" onclick="exportCSV()">
               ⬇ Exportovat do CSV (Excel)
@@ -1439,7 +1439,21 @@
     };
 
     const LEAD_MAIL_TO = 'monika@cemap.cz';
+    const LEAD_MAIL_DAY = '2026-11-19';
     const LEAD_MAIL_EVERY_MS = 2 * 60 * 60 * 1000;
+
+    function pragueDayKey(ms) {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Prague',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(ms);
+    }
+
+    function isLeadMailDay(ms) {
+      return pragueDayKey(ms || Date.now()) === LEAD_MAIL_DAY;
+    }
 
     /* ==========================================================================
        2. DATABÁZE 10 ODBORNÝCH OTÁZEK KVÍZU CeMap
@@ -2517,9 +2531,9 @@
       if (!el) return;
       const pending = leadsWaitingForMail();
       const state = getMailState();
-      const bits = ['Souhrn nových kontaktů jde na ' + LEAD_MAIL_TO + ' každé 2 hodiny, dokud je stránka otevřená a online.'];
-      if (pending.length) bits.push('Čeká na odeslání: ' + pending.length + '.');
-      if (state.nextSendAt) bits.push('Další odeslání: ' + formatMailTime(state.nextSendAt) + '.');
+      const bits = ['E-maily na ' + LEAD_MAIL_TO + ' se odešlou jen 19. 11. 2026, a to každé 2 hodiny, dokud je stránka otevřená a online.'];
+      if (pending.length) bits.push('Na tabletu čeká: ' + pending.length + '.');
+      if (isLeadMailDay() && state.nextSendAt && isLeadMailDay(state.nextSendAt)) bits.push('Další odeslání: ' + formatMailTime(state.nextSendAt) + '.');
       if (state.lastSentAt) bits.push('Naposledy odesláno: ' + formatMailTime(state.lastSentAt) + '.');
       if (state.lastError) bits.push(state.lastError);
       el.textContent = bits.join(' ');
@@ -2528,8 +2542,9 @@
     function scheduleLeadMail() {
       const pending = leadsWaitingForMail();
       const state = getMailState();
-      if (pending.length && !state.nextSendAt) {
-        setMailState({ nextSendAt: Date.now() + LEAD_MAIL_EVERY_MS });
+      if (isLeadMailDay() && pending.length && !state.nextSendAt) {
+        const nextSendAt = Date.now() + LEAD_MAIL_EVERY_MS;
+        if (isLeadMailDay(nextSendAt)) setMailState({ nextSendAt: nextSendAt });
       }
       updateMailStatus();
     }
@@ -2553,6 +2568,10 @@
     let leadMailInFlight = false;
 
     async function maybeSendLeadDigest() {
+      if (!isLeadMailDay()) {
+        updateMailStatus();
+        return;
+      }
       if (leadMailInFlight || !navigator.onLine) return;
       const pending = leadsWaitingForMail();
       const state = getMailState();
@@ -2601,8 +2620,9 @@
           return Object.assign({}, lead, { mailedAt: sentAt });
         });
         SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
+        const nextSendAt = sentAt + LEAD_MAIL_EVERY_MS;
         setMailState({
-          nextSendAt: sentAt + LEAD_MAIL_EVERY_MS,
+          nextSendAt: isLeadMailDay(nextSendAt) ? nextSendAt : null,
           lastSentAt: sentAt,
           lastError: ''
         });
