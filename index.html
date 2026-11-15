@@ -1349,7 +1349,7 @@
             <h3>Změna administrátorského PIN kódu</h3>
             <p>PIN je uložený jen v tomto tabletu, ve zdrojovém kódu žádný není. Tady ho můžete změnit. Administraci otevřete 5× klepnutím na logo CeMap.</p>
             <div class="form-group">
-              <label for="newPinInput" class="form-label">Nový 4místný PIN:</label>
+              <label for="newPinInput" class="form-label">Nový čtyřmístný PIN:</label>
               <input type="password" id="newPinInput" class="form-control" maxlength="4" inputmode="numeric" placeholder="••••">
             </div>
             <div id="pin-settings-msg" class="error-msg hidden" style="margin-bottom: 12px;"></div>
@@ -1368,7 +1368,7 @@
   <div id="pinModal" class="modal-backdrop hidden" onclick="if(event.target===this) closePinModal()">
     <div class="modal-panel">
       <h3 id="pinModalTitle" style="margin-top: 0;">Vstup pro obsluhu stánku</h3>
-      <p id="pinModalText" style="font-size: 0.92rem;">Zadejte 4místný PIN nastavený na tomto tabletu.</p>
+      <p id="pinModalText" style="font-size: 0.92rem;">Zadejte čtyřmístný PIN nastavený na tomto tabletu.</p>
       <div class="form-group">
         <input type="password" id="pinInput" class="form-control" maxlength="4" inputmode="numeric" placeholder="••••" style="text-align: center; font-size: 22px; letter-spacing: 8px;" onkeydown="if(event.key==='Enter') verifyPin()">
         <div id="pinError" class="error-msg hidden" style="text-align: center;">Nesprávný PIN kód.</div>
@@ -1510,8 +1510,7 @@
         options: [
           "Webové služby dálkového přístupu",
           "World Smart Delivery Portal",
-          "Wedle soused dobrá pálenka",
-          "Jednotný registr stavebních povolení"
+          "Wedle soused dobrá pálenka"
         ],
         correct: 0,
         explanation: "WSDP jsou Webové služby dálkového přístupu Českého úřadu zeměměřického a katastrálního (ČÚZK), přes které získáváme ověřená data."
@@ -1940,7 +1939,7 @@
         "id": "ustecky",
         "region": "Ústecký kraj",
         "title": "Byt 2+kk 44 m²",
-        "location": "Děčín I-Děčín – Zámecká",
+        "location": "Děčín – Zámecká",
         "layout": "2+kk",
         "area": "44 m²",
         "state": "Dobrý",
@@ -1981,7 +1980,7 @@
         "id": "liberecky",
         "region": "Liberecký kraj",
         "title": "Byt 2+1 55 m²",
-        "location": "Liberec XV-Starý Harcov – Svobody",
+        "location": "Liberec – Starý Harcov – Svobody",
         "layout": "2+1",
         "area": "55 m²",
         "state": "Po rekonstrukci",
@@ -2794,7 +2793,7 @@
         : 'Vstup pro obsluhu stánku';
       document.getElementById('pinModalText').textContent = creating
         ? 'Na tomto tabletu ještě není PIN. Zvolte 4 číslice. Zůstanou jen v tomto prohlížeči.'
-        : 'Zadejte 4místný PIN nastavený na tomto tabletu.';
+        : 'Zadejte čtyřmístný PIN nastavený na tomto tabletu.';
       document.getElementById('pinUnlockBtn').textContent = creating ? 'Uložit a otevřít' : 'Odemknout';
       document.getElementById('pinInput').value = '';
       document.getElementById('pinError').classList.add('hidden');
