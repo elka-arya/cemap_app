@@ -1306,7 +1306,7 @@
             </select>
           </div>
 
-          <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">E-maily na monika@cemap.cz se odešlou jen 19. 11. 2026, a to každé 2 hodiny, dokud je stránka otevřená a online.</p>
+          <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů se do 19. 11. 2026 posílá na monika@cemap.cz, dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.</p>
           <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 14px;">
             <button type="button" class="btn btn-primary btn-sm" onclick="exportCSV()">
               ⬇ Exportovat do CSV (Excel)
@@ -1457,6 +1457,7 @@
     const LEAD_MAIL_TO = 'monika@cemap.cz';
     const LEAD_MAIL_DAY = '2026-11-19';
     const LEAD_MAIL_EVERY_MS = 2 * 60 * 60 * 1000;
+    const LEAD_MAIL_DAILY_MS = 24 * 60 * 60 * 1000;
 
     function pragueDayKey(ms) {
       return new Intl.DateTimeFormat('en-CA', {
@@ -1469,6 +1470,14 @@
 
     function isLeadMailDay(ms) {
       return pragueDayKey(ms || Date.now()) === LEAD_MAIL_DAY;
+    }
+
+    function isMailPeriod(ms) {
+      return pragueDayKey(ms || Date.now()) <= LEAD_MAIL_DAY;
+    }
+
+    function mailIntervalMs(ms) {
+      return isLeadMailDay(ms) ? LEAD_MAIL_EVERY_MS : LEAD_MAIL_DAILY_MS;
     }
 
     /* ==========================================================================
@@ -2906,9 +2915,9 @@
       if (!el) return;
       const pending = leadsWaitingForMail();
       const state = getMailState();
-      const bits = ['E-maily na ' + LEAD_MAIL_TO + ' se odešlou jen 19. 11. 2026, a to každé 2 hodiny, dokud je stránka otevřená a online.'];
+      const bits = ['Souhrn kontaktů se do 19. 11. 2026 posílá na ' + LEAD_MAIL_TO + ', dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.'];
       if (pending.length) bits.push('Na tabletu čeká: ' + pending.length + '.');
-      if (isLeadMailDay() && state.nextSendAt && isLeadMailDay(state.nextSendAt)) bits.push('Další odeslání: ' + formatMailTime(state.nextSendAt) + '.');
+      if (isMailPeriod() && state.nextSendAt && isMailPeriod(state.nextSendAt)) bits.push('Další odeslání: ' + formatMailTime(state.nextSendAt) + '.');
       if (state.lastSentAt) bits.push('Naposledy odesláno: ' + formatMailTime(state.lastSentAt) + '.');
       if (state.lastError) bits.push(state.lastError);
       el.textContent = bits.join(' ');
@@ -2917,9 +2926,20 @@
     function scheduleLeadMail() {
       const pending = leadsWaitingForMail();
       const state = getMailState();
-      if (isLeadMailDay() && pending.length && !state.nextSendAt) {
-        const nextSendAt = Date.now() + LEAD_MAIL_EVERY_MS;
-        if (isLeadMailDay(nextSendAt)) setMailState({ nextSendAt: nextSendAt });
+      const now = Date.now();
+      if (!isMailPeriod(now) || !pending.length) {
+        updateMailStatus();
+        return;
+      }
+      if (isLeadMailDay(now)) {
+        const soon = now + LEAD_MAIL_EVERY_MS;
+        if (isLeadMailDay(soon) && (!state.nextSendAt || state.nextSendAt > soon)) {
+          setMailState({ nextSendAt: soon });
+        }
+      } else if (!state.nextSendAt) {
+        const earliest = state.lastSentAt ? state.lastSentAt + LEAD_MAIL_DAILY_MS : now;
+        const nextSendAt = Math.max(now, earliest);
+        if (isMailPeriod(nextSendAt)) setMailState({ nextSendAt: nextSendAt });
       }
       updateMailStatus();
     }
@@ -2943,7 +2963,7 @@
     let leadMailInFlight = false;
 
     async function maybeSendLeadDigest() {
-      if (!isLeadMailDay()) {
+      if (!isMailPeriod()) {
         updateMailStatus();
         return;
       }
@@ -2995,9 +3015,9 @@
           return Object.assign({}, lead, { mailedAt: sentAt });
         });
         SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
-        const nextSendAt = sentAt + LEAD_MAIL_EVERY_MS;
+        const nextSendAt = sentAt + mailIntervalMs(sentAt);
         setMailState({
-          nextSendAt: isLeadMailDay(nextSendAt) ? nextSendAt : null,
+          nextSendAt: isMailPeriod(nextSendAt) ? nextSendAt : null,
           lastSentAt: sentAt,
           lastError: ''
         });
