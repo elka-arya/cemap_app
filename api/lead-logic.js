@@ -200,8 +200,9 @@ async function handleAction(options) {
         body: { ok: false, shared: true, duplicate: true, error: "Tento e-mail už v tipovačce jeden tip odeslal." }
       };
     }
+    let saved = "exists";
     try {
-      await store.insertLead(lead);
+      saved = await store.insertLead(lead);
     } catch (error) {
       if (error && error.code === "23505") {
         return {
@@ -211,7 +212,7 @@ async function handleAction(options) {
       }
       throw error;
     }
-    return { status: 200, body: { ok: true, shared: true } };
+    return { status: 200, body: { ok: true, shared: true, inserted: saved === "inserted" } };
   }
 
   const auth = await pinIsValid(store, options.pin, env, ip);

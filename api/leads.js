@@ -124,6 +124,26 @@ function createPgStore() {
   };
 }
 
+async function appendGoogleSheet(lead) {
+  const url = String(process.env.GOOGLE_SHEET_URL || "").trim();
+  if (!url || !lead) return;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  try {
+    await fetch(url, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(lead),
+      signal: controller.signal
+    });
+  } catch (error) {
+    return;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function readBody(req) {
   if (req.body && typeof req.body === "object") return Promise.resolve(req.body);
   if (typeof req.body === "string") {
@@ -174,8 +194,13 @@ module.exports = async function handler(req, res) {
       ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
       env: process.env
     });
+    if (result.body && result.body.inserted) {
+      await appendGoogleSheet(body.lead);
+    }
+    const responseBody = Object.assign({}, result.body);
+    delete responseBody.inserted;
     res.statusCode = result.status;
-    res.end(JSON.stringify(result.body));
+    res.end(JSON.stringify(responseBody));
   } catch (error) {
     res.statusCode = 500;
     res.end(JSON.stringify({ ok: false, error: "Databáze je teď nedostupná." }));
