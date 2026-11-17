@@ -3339,20 +3339,41 @@
       updateMailStatus();
     }
 
-    function leadDigestText(pending) {
-      const blocks = pending.map(function (lead, index) {
-        return [
-          (index + 1) + '. ' + (lead.name || ''),
-          'E-mail: ' + (lead.email || '—'),
-          'Telefon: ' + (lead.phone || '—'),
-          'Skóre: ' + lead.score + '/10',
-          'Úroveň: ' + (lead.level || ''),
-          'Kraj: ' + (lead.guessedPrice ? (lead.regionName || '') : '—'),
-          'Tip: ' + (lead.guessedPrice ? formatCurrency(lead.guessedPrice) : 'Přeskočeno'),
-          'Čas na tabletu: ' + (lead.timestamp || '')
-        ].join('\n');
+    function zajemceCount(count) {
+      if (count === 1) return '1 nový zájemce';
+      if (count >= 2 && count <= 4) return count + ' noví zájemci';
+      return count + ' nových zájemců';
+    }
+
+    function tipMailLine(lead) {
+      if (!lead.guessedPrice) return 'Tipovačku přeskočil';
+      const actual = getPriceMap()[lead.regionId];
+      const dev = calculateDeviation(lead.guessedPrice, actual);
+      let text = (lead.regionName || 'Kraj') + ', tip ' + formatCurrency(lead.guessedPrice);
+      if (!dev) return text;
+      const pct = dev.absPct.toFixed(1).replace('.', ',');
+      if (dev.absPct <= PRICE_TOLERANCE_PCT) return text + ' (v toleranci ±3 %)';
+      return text + ' (odchylka ' + pct + ' %)';
+    }
+
+    function leadMailPayload(pending) {
+      const payload = {
+        _subject: 'CeMap kvíz: ' + zajemceCount(pending.length),
+        _template: 'table',
+        _captcha: 'false',
+        'Souhrn': zajemceCount(pending.length) + ', kteří na úvodu zvolili Zatím ne.'
+      };
+      pending.forEach(function (lead, index) {
+        const label = (index + 1) + '. ' + (lead.name || 'Účastník');
+        payload[label] = [
+          lead.email || 'e-mail neuveden',
+          lead.phone || 'telefon neuveden',
+          'Kvíz ' + lead.score + '/10, ' + (lead.level || ''),
+          tipMailLine(lead),
+          lead.timestamp || ''
+        ].join(' · ');
       });
-      return 'Nové kontakty z konferenčního kvízu CeMap (volba Zatím ne): ' + pending.length + '\n\n' + blocks.join('\n\n');
+      return payload;
     }
 
     function rankedContestTips(leads) {
@@ -3401,12 +3422,7 @@
         const response = await fetch('https://formsubmit.co/ajax/' + LEAD_MAIL_FORM, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({
-            _subject: 'CeMap kvíz: ' + pending.length + ' nových kontaktů',
-            _template: 'box',
-            _captcha: 'false',
-            Kontakty: leadDigestText(pending)
-          })
+          body: JSON.stringify(leadMailPayload(pending))
         });
         const payload = await response.json().catch(function () { return {}; });
         const message = String(payload.message || '');
