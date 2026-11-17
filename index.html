@@ -1368,7 +1368,7 @@
 
         <!-- ZÁLOŽKA 2: KLÍČ SPRÁVNÝCH CEN (14 KRAJŮ) -->
         <div id="admin-tab-key" class="hidden">
-          <p>Zde můžete upravit referenční tržní ceny pro všech 14 krajů. Změny se okamžitě projeví při výpočtu odchylky v tabulce tipovačky.</p>
+          <p id="price-key-note">Zde můžete upravit referenční tržní ceny pro všech 14 krajů. Změny se okamžitě projeví při výpočtu odchylky v tabulce tipovačky.</p>
           <div id="keyGrid" class="key-grid"></div>
         </div>
 
@@ -1499,6 +1499,10 @@
     }
 
     function isLeadMailDay(ms) {
+      return pragueDayKey(ms || Date.now()) === LEAD_MAIL_DAY;
+    }
+
+    function pricesAreLocked(ms) {
       return pragueDayKey(ms || Date.now()) === LEAD_MAIL_DAY;
     }
 
@@ -3042,7 +3046,7 @@
     }
 
     function applySharedPrices(prices) {
-      if (!prices || typeof prices !== 'object') return;
+      if (pricesAreLocked() || !prices || typeof prices !== 'object') return;
       const current = getPriceMap();
       let changed = false;
       Object.keys(prices).forEach(function (key) {
@@ -3132,8 +3136,9 @@
         saved = {};
       }
       const map = {};
+      const locked = pricesAreLocked();
       REGIONAL_PROPERTIES.forEach(p => {
-        map[p.id] = saved[p.id] !== undefined ? Number(saved[p.id]) : p.defaultPrice;
+        map[p.id] = !locked && saved[p.id] !== undefined ? Number(saved[p.id]) : p.defaultPrice;
       });
       return map;
     }
@@ -3578,6 +3583,13 @@
     function renderPriceKeyEditor() {
       const priceMap = getPriceMap();
       const grid = document.getElementById('keyGrid');
+      const locked = pricesAreLocked();
+      const note = document.getElementById('price-key-note');
+      if (note) {
+        note.textContent = locked
+          ? 'Ceny jsou po celý den 19. 11. 2026 uzamčené. Vyhodnocení používá ceny uložené v aplikaci. Změna inzerátu ani ruční úprava se neprojeví.'
+          : 'Zde můžete upravit referenční tržní ceny pro všech 14 krajů. Změny se okamžitě projeví při výpočtu odchylky v tabulce tipovačky.';
+      }
 
       grid.innerHTML = REGIONAL_PROPERTIES.map(prop => {
         const currentVal = formatNumber(priceMap[prop.id]);
@@ -3592,8 +3604,8 @@
               ${prop.photos.map((_, photoIdx) => `<div>${renderPhotoMedia(prop, photoIdx)}</div>`).join('')}
             </div>
             <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-              <input type="text" id="key-price-${prop.id}" class="form-control" inputmode="numeric" value="${currentVal}" oninput="formatKeyInput(this)" style="min-height: 44px; font-size: 16px;">
-              <button type="button" class="btn btn-primary btn-sm" onclick="saveRegionPrice('${prop.id}')">Uložit</button>
+              <input type="text" id="key-price-${prop.id}" class="form-control" inputmode="numeric" value="${currentVal}" ${locked ? 'readonly' : 'oninput="formatKeyInput(this)"'} style="min-height: 44px; font-size: 16px;">
+              ${locked ? '' : `<button type="button" class="btn btn-primary btn-sm" onclick="saveRegionPrice('${prop.id}')">Uložit</button>`}
             </div>
           </div>
         `;
@@ -3606,6 +3618,10 @@
     }
 
     function saveRegionPrice(regionId) {
+      if (pricesAreLocked()) {
+        showToast('Ceny jsou 19. 11. 2026 uzamčené a zůstanou beze změny.');
+        return;
+      }
       const input = document.getElementById(`key-price-${regionId}`);
       const digits = input.value.replace(/\D/g, '');
       const val = parseInt(digits, 10);

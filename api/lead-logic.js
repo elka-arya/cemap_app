@@ -78,6 +78,16 @@ function storedPinMatches(raw, pin) {
   }
 }
 
+function pricesLocked(ms) {
+  const day = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Prague",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(ms || Date.now());
+  return day === "2026-11-19";
+}
+
 function serverPin(env) {
   const value = String((env && env.ADMIN_PIN) || "").trim();
   return /^\d{4}$/.test(value) ? value : "";
@@ -175,11 +185,14 @@ async function handleAction(options) {
 
   if (action === "list") {
     const leads = await store.listLeads();
-    const prices = cleanPrices(await store.getPrices()) || {};
+    const prices = pricesLocked(options.now) ? {} : (cleanPrices(await store.getPrices()) || {});
     return { status: 200, body: { ok: true, shared: true, leads, prices } };
   }
 
   if (action === "prices") {
+    if (pricesLocked(options.now)) {
+      return { status: 400, body: { ok: false, shared: true, error: "Ceny jsou 19. 11. 2026 uzamčené." } };
+    }
     const prices = cleanPrices(options.prices);
     if (!prices || Object.keys(prices).length === 0) {
       return { status: 400, body: { ok: false, error: "Ceny nejde uložit." } };

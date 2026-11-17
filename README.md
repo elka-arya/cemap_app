@@ -16,6 +16,8 @@ Administrace je 5× klepnutí na logo. Na prvním tabletu zvolte 4místný PIN a
 
 Společná databáze se zapne v projektu Vercel: Storage → Create Database → Postgres → připojit k tomuto projektu. Vercel tím nastaví `POSTGRES_URL` a znovu nasadí web. Dokud databáze není, každý tablet drží své tipy u sebe. Obnova PINu, kdyby ho někdo nastavil dřív než obsluha, je proměnná `ADMIN_PIN` se čtyřmi číslicemi.
 
+Správné ceny tipovačky jsou 19. 11. 2026 celý den uzamčené. Změna inzerátu ani úprava v administraci se do vyhodnocení nepromítne.
+
 Kdo odešle tip ceny, musí zadat e-mail.
 
 Souhrn kontaktů odchází na monika@cemap.cz do 19. 11. 2026 (čas Prahy), dokud je stránka na tabletu otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. 2026 každé 2 hodiny. Doručení zajišťuje FormSubmit. Aktivační tlačítko v jejich mailu je často neplatné. Formulář je proto napojený na kód z toho mailu a souhrny chodí bez kliknutí na něj.

@@ -81,6 +81,24 @@ async function main() {
   const empty = await handleAction({ store, action: "list", pin: "4321", ip: "10.0.0.1" });
   assert.strictEqual(empty.body.leads.length, 0);
 
+  const locked = await handleAction({
+    store,
+    action: "prices",
+    pin: "4321",
+    ip: "10.0.0.1",
+    now: Date.parse("2026-11-19T12:00:00+01:00"),
+    prices: { praha: 8000000 }
+  });
+  assert.strictEqual(locked.status, 400);
+  const duringContest = await handleAction({
+    store,
+    action: "list",
+    pin: "4321",
+    ip: "10.0.0.1",
+    now: Date.parse("2026-11-19T18:00:00+01:00")
+  });
+  assert.deepStrictEqual(duringContest.body.prices, {});
+
   const rejected = await handleAction({
     store,
     action: "upsert",
