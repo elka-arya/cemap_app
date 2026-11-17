@@ -1335,7 +1335,7 @@
           <p id="shared-note" style="font-size: 0.85rem;">Pořadí je společné pro všechny kraje. Vyhrává nejmenší odchylka od nabídkové ceny.</p>
           <div id="top-tips" class="top-tips"></div>
 
-          <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů se do 19. 11. 2026 posílá na monika@cemap.cz, dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.</p>
+          <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů nových zájemců, kteří zvolili „Zatím ne“, se do 19. 11. 2026 posílá na monika@cemap.cz, dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.</p>
           <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 14px;">
             <button type="button" class="btn btn-primary btn-sm" onclick="exportCSV()">
               ⬇ Exportovat do CSV (Excel)
@@ -3161,7 +3161,7 @@
     function leadsWaitingForMail(leads) {
       const mine = deviceId();
       return (leads || getStoredLeads()).filter(function (lead) {
-        return !lead.mailedAt && (lead.email || lead.phone) && (!lead.deviceId || lead.deviceId === mine);
+        return !lead.isExisting && !lead.mailedAt && (lead.email || lead.phone) && (!lead.deviceId || lead.deviceId === mine);
       });
     }
 
@@ -3175,7 +3175,7 @@
       if (!el) return;
       const pending = leadsWaitingForMail();
       const state = getMailState();
-      const bits = ['Souhrn kontaktů se do 19. 11. 2026 posílá na ' + LEAD_MAIL_TO + ', dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.'];
+      const bits = ['Souhrn kontaktů nových zájemců, kteří zvolili „Zatím ne“, se do 19. 11. 2026 posílá na ' + LEAD_MAIL_TO + ', dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.'];
       if (pending.length) bits.push('Na tabletu čeká: ' + pending.length + '.');
       if (isMailPeriod() && state.nextSendAt && isMailPeriod(state.nextSendAt)) bits.push('Další odeslání: ' + formatMailTime(state.nextSendAt) + '.');
       if (state.lastSentAt) bits.push('Naposledy odesláno: ' + formatMailTime(state.lastSentAt) + '.');
@@ -3217,7 +3217,7 @@
           'Čas na tabletu: ' + (lead.timestamp || '')
         ].join('\n');
       });
-      return 'Nové kontakty z konferenčního kvízu CeMap: ' + pending.length + '\n\n' + blocks.join('\n\n') + topTipsText();
+      return 'Nové kontakty z konferenčního kvízu CeMap (volba Zatím ne): ' + pending.length + '\n\n' + blocks.join('\n\n');
     }
 
     function rankedContestTips(leads) {
@@ -3236,16 +3236,6 @@
         .sort(function (a, b) {
           return a.dev.absPct - b.dev.absPct;
         });
-    }
-
-    function topTipsText() {
-      const ranked = rankedContestTips().slice(0, 3);
-      if (!ranked.length) return '';
-      const lines = ranked.map(function (lead, index) {
-        const pct = lead.dev.absPct.toFixed(1).replace('.', ',');
-        return (index + 1) + '. ' + (lead.name || '') + ' (' + lead.email + '), ' + (lead.regionName || '') + ', odchylka ' + pct + ' %';
-      });
-      return '\n\n3 nejlepší tipy ze všech krajů dohromady:\n' + lines.join('\n');
     }
 
     let leadMailInFlight = false;

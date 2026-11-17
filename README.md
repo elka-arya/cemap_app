@@ -20,7 +20,7 @@ Správné ceny tipovačky jsou 19. 11. 2026 celý den uzamčené. Změna inzerá
 
 Kdo odešle tip ceny, musí zadat e-mail.
 
-Souhrn kontaktů odchází na monika@cemap.cz do 19. 11. 2026 (čas Prahy), dokud je stránka na tabletu otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. 2026 každé 2 hodiny. Doručení zajišťuje FormSubmit. Aktivační tlačítko v jejich mailu je často neplatné. Formulář je proto napojený na kód z toho mailu a souhrny chodí bez kliknutí na něj.
+Souhrn kontaktů odchází na monika@cemap.cz jen za lidi, kteří na úvodní stránce zvolili „Zatím ne“. Stávající uživatelé v e-mailu nejsou. Posílá se do 19. 11. 2026 (čas Prahy), dokud je stránka na tabletu otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. 2026 každé 2 hodiny. Doručení zajišťuje FormSubmit. Aktivační tlačítko v jejich mailu je často neplatné. Formulář je proto napojený na kód z toho mailu a souhrny chodí bez kliknutí na něj.
 
 ## Lokálně
 
