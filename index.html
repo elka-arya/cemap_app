@@ -1356,6 +1356,11 @@
 
         <!-- ZÁLOŽKA 1: LEADY & TIPOVAČKA -->
         <div id="admin-tab-leads">
+          <div style="display: flex; justify-content: flex-start; margin-bottom: 12px;">
+            <button type="button" class="btn btn-primary" onclick="openExportModal()">
+              Export leadů
+            </button>
+          </div>
           <div class="toolbar">
             <input type="text" id="adminSearch" class="form-control" placeholder="Hledat jméno, e-mail, telefon..." oninput="renderLeadsTable()">
             <select id="adminRegionFilter" class="form-select" onchange="renderLeadsTable()"></select>
@@ -1378,10 +1383,7 @@
           <div id="top-tips" class="top-tips"></div>
 
           <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů nových zájemců, kteří zvolili „Zatím ne“, se do 19. 11. 2026 posílá na monika@cemap.cz, dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.</p>
-          <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 14px;">
-            <button type="button" class="btn btn-primary btn-sm" onclick="openExportModal()">
-              Export
-            </button>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-bottom: 14px;">
             <button type="button" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border);" onclick="promptClearData()">
               🗑 Vymazat všechna data
             </button>
