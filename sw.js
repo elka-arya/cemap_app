@@ -1,4 +1,4 @@
-const CACHE = "cemap-kviz-v13";
+const CACHE = "cemap-kviz-v14";
 const ASSETS = [
   "./",
   "./index.html",
@@ -29,6 +29,8 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.pathname.indexOf("/api/") !== -1) return;
   event.respondWith(
     fetch(event.request)
       .then((response) => {

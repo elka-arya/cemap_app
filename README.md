@@ -1,6 +1,6 @@
 # CeMap konferenční kvíz
 
-Jedna stránka pro tablet na stánku. Kvíz, tip ceny a kontakty účastníků zůstávají v prohlížeči toho tabletu. Nic se neposílá na server.
+Jedna stránka pro tablet na stánku. Kvíz běží i bez sítě. Tipy a kontakty se ukládají do prohlížeče a, jakmile je připojená databáze, také do společného Postgresu. V administraci jsou pak vidět tipy ze všech tabletů a telefonů.
 
 ## Na konferenci
 
@@ -12,9 +12,11 @@ Jedna stránka pro tablet na stánku. Kvíz, tip ceny a kontakty účastníků z
 4. V nastavení tabletu vypni automatický zámek obrazovky (Auto-Lock → Nikdy). Po prvním dotyku se aplikace navíc snaží obrazovku držet zapnutou.
 5. Nepoužívej anonymní okno. V něm se kontakty po zavření smažou.
 
-Administrace je 5× klepnutí na logo. Při prvním otevření si na tabletu zvolíte vlastní PIN. Ve zdrojovém kódu žádný není a kontakty z tabletu se na jiném zařízení neukážou. Před koncem dne je exportujte do CSV.
+Administrace je 5× klepnutí na logo. Na prvním tabletu zvolte 4místný PIN a stejný PIN zadejte na ostatních. Ve zdrojovém kódu žádný není. V přehledu jde záznamy hledat, omezit na kraj a seřadit podle času, přesnosti tipu nebo skóre. Tři nejlepší tipy se počítají ze všech krajů a ze všech zařízení dohromady.
 
-Kdo odešle tip ceny, musí zadat e-mail. V administraci jsou na daném zařízení tři nejpřesnější tipy ze všech krajů dohromady.
+Společná databáze se zapne v projektu Vercel: Storage → Create Database → Postgres → připojit k tomuto projektu. Vercel tím nastaví `POSTGRES_URL` a znovu nasadí web. Dokud databáze není, každý tablet drží své tipy u sebe. Obnova PINu, kdyby ho někdo nastavil dřív než obsluha, je proměnná `ADMIN_PIN` se čtyřmi číslicemi.
+
+Kdo odešle tip ceny, musí zadat e-mail.
 
 Souhrn kontaktů odchází na monika@cemap.cz do 19. 11. 2026 (čas Prahy), dokud je stránka na tabletu otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. 2026 každé 2 hodiny. Doručení zajišťuje FormSubmit. Aktivační tlačítko v jejich mailu je často neplatné. Formulář je proto napojený na kód z toho mailu a souhrny chodí bez kliknutí na něj.
 

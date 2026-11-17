@@ -1322,10 +1322,17 @@
               <option value="accuracy">Řadit: Nejpřesnější tip (odchylka %)</option>
               <option value="score">Řadit: Nejvyšší skóre v testu</option>
             </select>
+            <select id="adminKind" class="form-select" onchange="renderLeadsTable()">
+              <option value="all">Zobrazit: všechny záznamy</option>
+              <option value="tips">Zobrazit: jen tipy</option>
+              <option value="contest">Zobrazit: tipy s e-mailem</option>
+            </select>
           </div>
+          <p id="leads-count" style="font-size: 0.85rem; margin: 0 0 8px;"></p>
+          <p id="sync-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Načítám společnou databázi…</p>
 
           <h3 style="margin: 0 0 6px;">3 nejlepší tipy ze všech krajů</h3>
-          <p style="font-size: 0.85rem;">Pořadí je společné pro všechny kraje. Vyhrává nejmenší odchylka od nabídkové ceny. Jde o tipy uložené na tomto zařízení; ostatní tablety a telefony pošlou své tipy ve souhrnném e-mailu.</p>
+          <p id="shared-note" style="font-size: 0.85rem;">Pořadí je společné pro všechny kraje. Vyhrává nejmenší odchylka od nabídkové ceny.</p>
           <div id="top-tips" class="top-tips"></div>
 
           <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů se do 19. 11. 2026 posílá na monika@cemap.cz, dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.</p>
@@ -1369,7 +1376,7 @@
         <div id="admin-tab-settings" class="hidden">
           <div style="max-width: 400px;">
             <h3>Změna administrátorského PIN kódu</h3>
-            <p>PIN je uložený jen v tomto tabletu, ve zdrojovém kódu žádný není. Tady ho můžete změnit. Administraci otevřete 5× klepnutím na logo CeMap.</p>
+            <p>Na všech tabletech používejte stejný PIN. Jakmile je připojená společná databáze, změna tady platí pro všechna zařízení. Administraci otevřete 5× klepnutím na logo CeMap.</p>
             <div class="form-group">
               <label for="newPinInput" class="form-label">Nový čtyřmístný PIN:</label>
               <input type="password" id="newPinInput" class="form-control" maxlength="4" inputmode="numeric" placeholder="••••">
@@ -1406,7 +1413,7 @@
   <div id="confirmModal" class="modal-backdrop hidden" onclick="if(event.target===this) closeConfirmModal()">
     <div class="modal-panel">
       <h3 style="margin-top: 0; color: var(--danger);">Opravdu vymazat data?</h3>
-      <p style="font-size: 0.95rem;">Tato akce nevratně smaže všechny uložené účastníky a tipy z tohoto zařízení. Doporučujeme nejprve provést export do CSV.</p>
+      <p style="font-size: 0.95rem;">Tato akce smaže účastníky a tipy ve společné databázi, tedy i na ostatních tabletech. Doporučujeme nejprve provést export do CSV.</p>
       <div style="display: flex; gap: 10px; margin-top: 18px;">
         <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeConfirmModal()">Zrušit</button>
         <button type="button" class="btn btn-red" style="flex: 1;" onclick="executeClearData()">Ano, vymazat</button>
@@ -2737,7 +2744,10 @@
       const displayName = state.leadData.name || (state.isExistingUser ? "Stávající uživatel" : "Účastník");
 
       leads.unshift({
-        id: Date.now(),
+        id: deviceId() + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+        createdAt: now.getTime(),
+        deviceId: deviceId(),
+        synced: false,
         timestamp,
         isExisting: state.isExistingUser,
         name: displayName,
@@ -2752,6 +2762,7 @@
 
       SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
       scheduleLeadMail();
+      flushSharedLeads();
 
       // Vykreslení obrazovky výsledků (bez konkrétních výher)
       document.getElementById('res-score').textContent = `${score} / ${QUIZ_QUESTIONS.length}`;
@@ -2833,8 +2844,8 @@
         ? 'Nastavte PIN obsluhy'
         : 'Vstup pro obsluhu stánku';
       document.getElementById('pinModalText').textContent = creating
-        ? 'Na tomto tabletu ještě není PIN. Zvolte 4 číslice. Zůstanou jen v tomto prohlížeči.'
-        : 'Zadejte čtyřmístný PIN nastavený na tomto tabletu.';
+        ? 'Zvolte 4 číslice. Stejný PIN pak zadejte na ostatních tabletech, ať vidí společné tipy.'
+        : 'Zadejte čtyřmístný PIN. Na všech tabletech je stejný.';
       document.getElementById('pinUnlockBtn').textContent = creating ? 'Uložit a otevřít' : 'Odemknout';
       document.getElementById('pinInput').value = '';
       document.getElementById('pinError').classList.add('hidden');
@@ -2878,6 +2889,7 @@
       renderPriceKeyEditor();
       switchAdminTab('leads');
       switchView('view-admin');
+      pullSharedLeads();
     }
 
     function closeAdmin() {
@@ -2889,6 +2901,216 @@
       tabs.forEach(t => {
         document.getElementById(`admin-tab-${t}`).classList.toggle('hidden', t !== tabName);
         document.getElementById(`tab-btn-${t}`).classList.toggle('active', t === tabName);
+      });
+    }
+
+    let sharedSyncRunning = false;
+    let sharedNextProbeAt = 0;
+    let sharedState = 'unknown';
+
+    function deviceId() {
+      let id = SafeStorage.getItem('cemap_quiz_device_v1');
+      if (!id) {
+        id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        SafeStorage.setItem('cemap_quiz_device_v1', id);
+      }
+      return id;
+    }
+
+    function leadMoment(lead) {
+      const created = Number(lead && lead.createdAt);
+      if (Number.isFinite(created) && created > 0) return created;
+      const numericId = Number(lead && lead.id);
+      if (Number.isFinite(numericId) && numericId > 1e11) return numericId;
+      return 0;
+    }
+
+    function setSyncStatus(text) {
+      const el = document.getElementById('sync-status');
+      if (el) el.textContent = text;
+    }
+
+    async function postShared(body) {
+      const headers = { 'Content-Type': 'application/json' };
+      const pin = getAdminPin();
+      if (pin && body.action !== 'upsert') headers['x-admin-pin'] = pin;
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
+      const data = await response.json().catch(function () { return {}; });
+      return { ok: response.ok, status: response.status, data: data };
+    }
+
+    function rememberShared(data) {
+      if (data && data.shared === false) {
+        sharedState = 'off';
+        sharedNextProbeAt = Date.now() + 120000;
+        return false;
+      }
+      if (data && data.shared === true) {
+        sharedState = 'on';
+        sharedNextProbeAt = 0;
+        return true;
+      }
+      return sharedState === 'on';
+    }
+
+    function exportableLead(lead) {
+      return {
+        id: String(lead.id),
+        timestamp: lead.timestamp || '',
+        createdAt: leadMoment(lead) || Date.now(),
+        isExisting: Boolean(lead.isExisting),
+        name: lead.name || '',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        score: Number(lead.score) || 0,
+        level: lead.level || '',
+        regionId: lead.regionId || '',
+        regionName: lead.regionName || '',
+        guessedPrice: lead.guessedPrice || null,
+        deviceId: lead.deviceId || deviceId(),
+        mailedAt: lead.mailedAt || null
+      };
+    }
+
+    async function flushSharedLeads() {
+      if (sharedSyncRunning || !navigator.onLine) return;
+      if (sharedState === 'off' && Date.now() < sharedNextProbeAt) return;
+      sharedSyncRunning = true;
+      try {
+        const leads = getStoredLeads();
+        let changed = false;
+        for (let i = 0; i < leads.length; i++) {
+          if (leads[i].synced) continue;
+          const result = await postShared({ action: 'upsert', lead: exportableLead(leads[i]) });
+          if (result.data && result.data.shared === false) {
+            rememberShared(result.data);
+            break;
+          }
+          if (result.status === 400) {
+            leads[i] = Object.assign({}, leads[i], { synced: true });
+            changed = true;
+            continue;
+          }
+          if (result.ok && result.data && result.data.shared) {
+            leads[i] = Object.assign({}, leads[i], {
+              synced: true,
+              deviceId: leads[i].deviceId || deviceId(),
+              createdAt: leadMoment(leads[i]) || Date.now()
+            });
+            changed = true;
+            rememberShared(result.data);
+          } else {
+            break;
+          }
+        }
+        if (changed) SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
+      } catch (error) {
+        sharedNextProbeAt = Date.now() + 30000;
+      } finally {
+        sharedSyncRunning = false;
+      }
+    }
+
+    function mergeSharedLeads(remote) {
+      const byId = new Map();
+      getStoredLeads().forEach(function (lead) {
+        byId.set(String(lead.id), lead);
+      });
+      (remote || []).forEach(function (lead) {
+        const key = String(lead.id);
+        const prev = byId.get(key);
+        if (!prev) {
+          byId.set(key, Object.assign({}, lead, { synced: true }));
+          return;
+        }
+        if (!prev.synced) {
+          byId.set(key, Object.assign({}, prev, { mailedAt: prev.mailedAt || lead.mailedAt || null }));
+          return;
+        }
+        byId.set(key, Object.assign({}, lead, {
+          synced: true,
+          mailedAt: prev.mailedAt || lead.mailedAt || null
+        }));
+      });
+      const merged = Array.from(byId.values());
+      merged.sort(function (a, b) { return leadMoment(b) - leadMoment(a); });
+      SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(merged));
+    }
+
+    function applySharedPrices(prices) {
+      if (!prices || typeof prices !== 'object') return;
+      const current = getPriceMap();
+      let changed = false;
+      Object.keys(prices).forEach(function (key) {
+        if (current[key] !== Number(prices[key])) {
+          current[key] = Number(prices[key]);
+          changed = true;
+        }
+      });
+      if (changed) {
+        let saved = {};
+        try {
+          saved = JSON.parse(SafeStorage.getItem(STORAGE_KEYS.PRICES) || '{}') || {};
+        } catch (error) {
+          saved = {};
+        }
+        Object.keys(prices).forEach(function (key) {
+          saved[key] = Number(prices[key]);
+        });
+        SafeStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(saved));
+      }
+    }
+
+    async function pullSharedLeads() {
+      const pin = getAdminPin();
+      if (!pin || !navigator.onLine) return;
+      try {
+        const result = await postShared({ action: 'list' });
+        const note = document.getElementById('shared-note');
+        if (result.data && result.data.shared === false) {
+          rememberShared(result.data);
+          setSyncStatus('Společná databáze ještě není připojená. Tento tablet ukládá tipy u sebe.');
+          if (note) note.textContent = 'Pořadí je teď jen z tohoto zařízení. Až se ve Vercelu připojí Postgres, uvidíte tipy ze všech tabletů a telefonů.';
+          return;
+        }
+        if (result.status === 401 || result.status === 429) {
+          setSyncStatus(result.data.error || 'PIN nepatří ke společné databázi.');
+          return;
+        }
+        if (!result.ok || !result.data || !result.data.leads) {
+          setSyncStatus('Tipy ze společné databáze se nepodařilo načíst.');
+          return;
+        }
+        rememberShared(result.data);
+        mergeSharedLeads(result.data.leads);
+        applySharedPrices(result.data.prices);
+        setSyncStatus('Společná databáze je připojená. Záznamů ze všech zařízení: ' + result.data.leads.length + '.');
+        if (note) note.textContent = 'Pořadí je společné pro všechny kraje a pro všechna zařízení. Vyhrává nejmenší odchylka od nabídkové ceny.';
+        renderAdminStats();
+        renderLeadsTable();
+        const keyGrid = document.getElementById('keyGrid');
+        const editingPrice = keyGrid && document.activeElement && keyGrid.contains(document.activeElement);
+        if (!editingPrice) renderPriceKeyEditor();
+      } catch (error) {
+        setSyncStatus('Tipy ze společné databáze se nepodařilo načíst.');
+      }
+    }
+
+    function startSharedSync() {
+      flushSharedLeads();
+      setInterval(flushSharedLeads, 20000);
+      setInterval(function () {
+        const admin = document.getElementById('view-admin');
+        if (admin && !admin.classList.contains('hidden')) pullSharedLeads();
+      }, 15000);
+      window.addEventListener('online', function () {
+        flushSharedLeads();
+        const admin = document.getElementById('view-admin');
+        if (admin && !admin.classList.contains('hidden')) pullSharedLeads();
       });
     }
 
@@ -2932,8 +3154,9 @@
     }
 
     function leadsWaitingForMail(leads) {
+      const mine = deviceId();
       return (leads || getStoredLeads()).filter(function (lead) {
-        return !lead.mailedAt && (lead.email || lead.phone);
+        return !lead.mailedAt && (lead.email || lead.phone) && (!lead.deviceId || lead.deviceId === mine);
       });
     }
 
@@ -3017,7 +3240,7 @@
         const pct = lead.dev.absPct.toFixed(1).replace('.', ',');
         return (index + 1) + '. ' + (lead.name || '') + ' (' + lead.email + '), ' + (lead.regionName || '') + ', odchylka ' + pct + ' %';
       });
-      return '\n\n3 nejlepší tipy na tomto zařízení, ze všech krajů dohromady:\n' + lines.join('\n');
+      return '\n\n3 nejlepší tipy ze všech krajů dohromady:\n' + lines.join('\n');
     }
 
     let leadMailInFlight = false;
@@ -3072,9 +3295,10 @@
         pending.forEach(function (lead) { sentIds[lead.id] = true; });
         const leads = getStoredLeads().map(function (lead) {
           if (!sentIds[lead.id]) return lead;
-          return Object.assign({}, lead, { mailedAt: sentAt });
+          return Object.assign({}, lead, { mailedAt: sentAt, synced: false });
         });
         SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
+        flushSharedLeads();
         const nextSendAt = sentAt + mailIntervalMs(sentAt);
         setMailState({
           nextSendAt: isMailPeriod(nextSendAt) ? nextSendAt : null,
@@ -3159,6 +3383,7 @@
       const search = document.getElementById('adminSearch').value.toLowerCase().trim();
       const regionFilter = document.getElementById('adminRegionFilter').value;
       const sortMode = document.getElementById('adminSort').value;
+      const kindFilter = document.getElementById('adminKind') ? document.getElementById('adminKind').value : 'all';
 
       // Obohacení o správnou cenu a odchylku
       let enriched = leads.map(l => {
@@ -3169,6 +3394,8 @@
 
       // Filtrování
       enriched = enriched.filter(item => {
+        if (kindFilter === 'tips' && !item.guessedPrice) return false;
+        if (kindFilter === 'contest' && (!item.guessedPrice || !item.email)) return false;
         if (regionFilter !== 'ALL' && item.regionId !== regionFilter) return false;
         if (search) {
           const hay = `${item.name} ${item.email} ${item.phone} ${item.regionName}`.toLowerCase();
@@ -3186,7 +3413,12 @@
         });
       } else if (sortMode === 'score') {
         enriched.sort((a, b) => b.score - a.score);
+      } else {
+        enriched.sort((a, b) => leadMoment(b) - leadMoment(a));
       }
+
+      const countEl = document.getElementById('leads-count');
+      if (countEl) countEl.textContent = 'Zobrazeno ' + enriched.length + ' z ' + leads.length + '.';
 
       const tbody = document.getElementById('leadsTableBody');
       if (enriched.length === 0) {
@@ -3316,12 +3548,28 @@
       document.getElementById('confirmModal').classList.add('hidden');
     }
 
-    function executeClearData() {
-      SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify([]));
+    async function executeClearData() {
       closeConfirmModal();
+      if (!navigator.onLine) {
+        showToast('Bez internetu nejde smazat společnou databázi.');
+        return;
+      }
+      let result = null;
+      try {
+        result = await postShared({ action: 'clear' });
+      } catch (error) {
+        result = null;
+      }
+      if (result && result.data && result.data.shared && !result.ok) {
+        showToast(result.data.error || 'Společnou databázi se nepodařilo vymazat.');
+        return;
+      }
+      SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify([]));
       renderAdminStats();
       renderLeadsTable();
-      showToast('Všechna data účastníků byla vymazána.');
+      showToast(result && result.data && result.data.shared
+        ? 'Tipy byly vymazány na všech zařízeních.'
+        : 'Data na tomto tabletu byla vymazána.');
     }
 
     /* ==========================================================================
@@ -3369,11 +3617,14 @@
       const priceMap = getPriceMap();
       priceMap[regionId] = val;
       SafeStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(priceMap));
+      const pricePatch = {};
+      pricePatch[regionId] = val;
+      postShared({ action: 'prices', prices: pricePatch }).catch(function () {});
       renderLeadsTable();
       showToast('Správná cena pro kraj byla uložena.');
     }
 
-    function saveNewPin() {
+    async function saveNewPin() {
       const input = document.getElementById('newPinInput');
       const msgEl = document.getElementById('pin-settings-msg');
       const val = input.value.trim();
@@ -3381,6 +3632,26 @@
 
       if (!/^\d{4}$/.test(val)) {
         msgEl.textContent = 'PIN musí obsahovat přesně 4 číslice.';
+        msgEl.classList.remove('hidden');
+        return;
+      }
+
+      if (!navigator.onLine && sharedState === 'on') {
+        msgEl.textContent = 'Bez internetu nejde změnit PIN společné databáze.';
+        msgEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const result = await postShared({ action: 'change-pin', newPin: val });
+        const localOnly = result.status === 404 || (result.data && result.data.shared === false);
+        if (!localOnly && !result.ok) {
+          msgEl.textContent = (result.data && result.data.error) || 'PIN společné databáze se nepodařilo změnit.';
+          msgEl.classList.remove('hidden');
+          return;
+        }
+      } catch (error) {
+        msgEl.textContent = 'PIN společné databáze se nepodařilo změnit.';
         msgEl.classList.remove('hidden');
         return;
       }
@@ -3394,6 +3665,7 @@
     window.addEventListener('DOMContentLoaded', function () {
       initApp();
       startLeadMailer();
+      startSharedSync();
     });
 
     // Kiosk: po prvním dotyku držet obrazovku zapnutou a uložit aplikaci pro běh bez sítě.
