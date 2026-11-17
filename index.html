@@ -868,6 +868,23 @@
       margin-top: 4px;
     }
 
+    .top-tips {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .top-tip {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+
+    .top-tip.place-1 {
+      border-color: var(--cemap-blue);
+    }
+
     .tabs-bar {
       display: flex;
       flex-wrap: wrap;
@@ -1187,7 +1204,7 @@
       </div>
 
       <div class="form-group">
-        <label for="leadEmail" class="form-label">E-mail</label>
+        <label for="leadEmail" id="leadEmailLabel" class="form-label">E-mail</label>
         <input type="email" id="leadEmail" class="form-control" placeholder="jan.novak@realitka.cz" autocomplete="email">
       </div>
 
@@ -1196,7 +1213,7 @@
         <input type="tel" id="leadPhone" class="form-control" placeholder="+420 777 123 456" autocomplete="tel">
       </div>
 
-      <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 12px;">
+      <div id="lead-hint" style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 12px;">
         * Vyplňte prosím jméno a alespoň jeden kontakt (e-mail nebo telefon).
       </div>
 
@@ -1306,6 +1323,10 @@
               <option value="score">Řadit: Nejvyšší skóre v testu</option>
             </select>
           </div>
+
+          <h3 style="margin: 0 0 6px;">3 nejlepší tipy ze všech krajů</h3>
+          <p style="font-size: 0.85rem;">Pořadí je společné pro všechny kraje. Vyhrává nejmenší odchylka od nabídkové ceny. Jde o tipy uložené na tomto zařízení; ostatní tablety a telefony pošlou své tipy ve souhrnném e-mailu.</p>
+          <div id="top-tips" class="top-tips"></div>
 
           <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů se do 19. 11. 2026 posílá na monika@cemap.cz, dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.</p>
           <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 14px;">
@@ -2328,6 +2349,7 @@
       selectedRegionId: REGIONAL_PROPERTIES[0].id,
       activePhotoIdx: 0,
       guessedPrice: null,
+      leadMode: 'new',
       leadData: {
         name: "",
         email: "",
@@ -2616,14 +2638,13 @@
       // Rozhodnutí o zobrazení KROKU 3 (Brána před výsledkem)
       // - Povinně pro "Zatím ne" (!state.isExistingUser)
       // - Volitelně pro stávající uživatele, pokud vyplnili tip v tipovačce
-      if (!state.isExistingUser) {
-        prepareLeadGate(false);
+      if (state.guessedPrice !== null) {
+        prepareLeadGate('tip');
         switchView('view-lead');
-      } else if (state.guessedPrice !== null) {
-        prepareLeadGate(true);
+      } else if (!state.isExistingUser) {
+        prepareLeadGate('new');
         switchView('view-lead');
       } else {
-        // Stávající uživatel bez tipu jde rovnou na výsledek
         finalizeAndShowResult();
       }
     }
@@ -2631,23 +2652,26 @@
     /* ==========================================================================
        9. KROK 3: BRÁNA PŘED VÝSLEDKEM A VALIDACE KONTAKTU
        ========================================================================== */
-    function prepareLeadGate(isOptionalForExisting) {
+    function prepareLeadGate(mode) {
+      state.leadMode = mode;
       document.getElementById('leadName').value = '';
       document.getElementById('leadEmail').value = '';
       document.getElementById('leadPhone').value = '';
       document.getElementById('lead-error').classList.add('hidden');
+      document.getElementById('btn-skip-lead-existing').classList.add('hidden');
 
-      const skipBtn = document.getElementById('btn-skip-lead-existing');
-      if (isOptionalForExisting) {
-        document.getElementById('lead-badge').textContent = 'Zařazení do krajské tipovačky';
-        document.getElementById('lead-heading').textContent = 'Chcete svůj tip zařadit do slosování o hlavní cenu?';
-        document.getElementById('lead-subtext').textContent = 'Jako stávající uživatel CeMapu můžete kontakt vyplnit dobrovolně, abychom vás v případě výhry v tipovačce mohli kontaktovat.';
-        skipBtn.classList.remove('hidden');
+      if (mode === 'tip') {
+        document.getElementById('lead-badge').textContent = 'Zařazení do tipovačky';
+        document.getElementById('lead-heading').textContent = 'Zadejte e-mail k vyhodnocení tipu';
+        document.getElementById('lead-subtext').textContent = 'Tipovačka se na konci dne vyhodnotí samostatně. Bez e-mailu vás nemůžeme zařadit mezi soutěžící.';
+        document.getElementById('leadEmailLabel').textContent = 'E-mail *';
+        document.getElementById('lead-hint').textContent = '* Jméno a e-mail jsou povinné. Telefon je dobrovolný.';
       } else {
         document.getElementById('lead-badge').textContent = 'Poslední krok před výsledkem';
         document.getElementById('lead-heading').textContent = 'Zobrazte své skóre a vyzvedněte si odměnu';
         document.getElementById('lead-subtext').textContent = 'Vyplňte jméno a e-mail nebo telefon, abychom vám zobrazili vyhodnocení testu a mohli vám předat odměnu na stánku CeMap.';
-        skipBtn.classList.add('hidden');
+        document.getElementById('leadEmailLabel').textContent = 'E-mail';
+        document.getElementById('lead-hint').textContent = '* Vyplňte prosím jméno a alespoň jeden kontakt (e-mail nebo telefon).';
       }
     }
 
@@ -2664,7 +2688,13 @@
         return;
       }
 
-      if (!email && !phone) {
+      if (state.leadMode === 'tip' && !email) {
+        errEl.textContent = 'Zadejte e-mail, aby šel váš tip zařadit do vyhodnocení.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (state.leadMode !== 'tip' && !email && !phone) {
         errEl.textContent = 'Zadejte prosím alespoň e-mail nebo telefonní číslo.';
         errEl.classList.remove('hidden');
         return;
@@ -2959,7 +2989,35 @@
           'Čas na tabletu: ' + (lead.timestamp || '')
         ].join('\n');
       });
-      return 'Nové kontakty z konferenčního kvízu CeMap: ' + pending.length + '\n\n' + blocks.join('\n\n');
+      return 'Nové kontakty z konferenčního kvízu CeMap: ' + pending.length + '\n\n' + blocks.join('\n\n') + topTipsText();
+    }
+
+    function rankedContestTips(leads) {
+      const priceMap = getPriceMap();
+      return (leads || getStoredLeads())
+        .map(function (lead) {
+          const actualPrice = priceMap[lead.regionId] || null;
+          return Object.assign({}, lead, {
+            actualPrice: actualPrice,
+            dev: calculateDeviation(lead.guessedPrice, actualPrice)
+          });
+        })
+        .filter(function (lead) {
+          return lead.guessedPrice && lead.email && lead.dev;
+        })
+        .sort(function (a, b) {
+          return a.dev.absPct - b.dev.absPct;
+        });
+    }
+
+    function topTipsText() {
+      const ranked = rankedContestTips().slice(0, 3);
+      if (!ranked.length) return '';
+      const lines = ranked.map(function (lead, index) {
+        const pct = lead.dev.absPct.toFixed(1).replace('.', ',');
+        return (index + 1) + '. ' + (lead.name || '') + ' (' + lead.email + '), ' + (lead.regionName || '') + ', odchylka ' + pct + ' %';
+      });
+      return '\n\n3 nejlepší tipy na tomto zařízení, ze všech krajů dohromady:\n' + lines.join('\n');
     }
 
     let leadMailInFlight = false;
@@ -3070,7 +3128,32 @@
       };
     }
 
+    function renderTopTips() {
+      const box = document.getElementById('top-tips');
+      if (!box) return;
+      const ranked = rankedContestTips().slice(0, 3);
+      if (!ranked.length) {
+        box.innerHTML = '<div class="top-tip">Zatím není žádný tip s e-mailem.</div>';
+        return;
+      }
+      const places = ['1. místo', '2. místo', '3. místo'];
+      box.innerHTML = ranked.map(function (lead, index) {
+        const sign = lead.dev.diffKc > 0 ? '+' : '';
+        const pct = lead.dev.absPct.toFixed(1).replace('.', ',');
+        return `
+          <div class="top-tip${index === 0 ? ' place-1' : ''}">
+            <strong>${places[index]}</strong>
+            <div style="font-weight: 800; margin-top: 4px;">${escapeHtml(lead.name)}</div>
+            <div style="font-size: 0.9rem;">${escapeHtml(lead.email)}</div>
+            <div style="font-size: 0.9rem; margin-top: 4px;">${escapeHtml(lead.regionName || '')}: tip ${formatCurrency(lead.guessedPrice)}, nabídka ${formatCurrency(lead.actualPrice)}</div>
+            <div style="font-weight: 700; color: var(--cemap-blue);">${sign}${formatNumber(lead.dev.diffKc)} Kč (${pct} %)</div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function renderLeadsTable() {
+      renderTopTips();
       const leads = getStoredLeads();
       const priceMap = getPriceMap();
       const search = document.getElementById('adminSearch').value.toLowerCase().trim();

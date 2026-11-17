@@ -1,4 +1,4 @@
-const CACHE = "cemap-kviz-v12";
+const CACHE = "cemap-kviz-v13";
 const ASSETS = [
   "./",
   "./index.html",

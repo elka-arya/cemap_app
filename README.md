@@ -14,6 +14,8 @@ Jedna stránka pro tablet na stánku. Kvíz, tip ceny a kontakty účastníků z
 
 Administrace je 5× klepnutí na logo. Při prvním otevření si na tabletu zvolíte vlastní PIN. Ve zdrojovém kódu žádný není a kontakty z tabletu se na jiném zařízení neukážou. Před koncem dne je exportujte do CSV.
 
+Kdo odešle tip ceny, musí zadat e-mail. V administraci jsou na daném zařízení tři nejpřesnější tipy ze všech krajů dohromady.
+
 Souhrn kontaktů odchází na monika@cemap.cz do 19. 11. 2026 (čas Prahy), dokud je stránka na tabletu otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. 2026 každé 2 hodiny. Doručení zajišťuje FormSubmit. Aktivační tlačítko v jejich mailu je často neplatné. Formulář je proto napojený na kód z toho mailu a souhrny chodí bez kliknutí na něj.
 
 ## Lokálně
