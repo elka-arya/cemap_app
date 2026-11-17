@@ -166,6 +166,7 @@ module.exports = async function handler(req, res) {
     const result = await handleAction({
       store: createPgStore(),
       action: body.action,
+      email: body.email,
       lead: body.lead,
       prices: body.prices,
       newPin: body.newPin,
