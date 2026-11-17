@@ -781,6 +781,45 @@
       border: 1px solid var(--border-color);
     }
 
+    #print-report {
+      display: none;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+
+      #print-report,
+      #print-report * {
+        visibility: visible;
+      }
+
+      #print-report {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: #ffffff;
+        color: #111827;
+        padding: 12px;
+      }
+
+      #print-report table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      #print-report th,
+      #print-report td {
+        border: 1px solid #cbd5e1;
+        padding: 4px 6px;
+        text-align: left;
+      }
+    }
+
     .lightbox-panel {
       position: relative;
       width: 100%;
@@ -1340,8 +1379,8 @@
 
           <p id="mail-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px;">Souhrn kontaktů nových zájemců, kteří zvolili „Zatím ne“, se do 19. 11. 2026 posílá na monika@cemap.cz, dokud je stránka otevřená a online. Do dne konference nejvýš jednou za 24 hodin, v den 19. 11. každé 2 hodiny.</p>
           <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 14px;">
-            <button type="button" class="btn btn-primary btn-sm" onclick="exportCSV()">
-              ⬇ Exportovat do CSV (Excel)
+            <button type="button" class="btn btn-primary btn-sm" onclick="openExportModal()">
+              Export
             </button>
             <button type="button" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border);" onclick="promptClearData()">
               🗑 Vymazat všechna data
@@ -1412,11 +1451,35 @@
     </div>
   </div>
 
+  <div id="exportModal" class="modal-backdrop hidden" onclick="if(event.target===this) closeExportModal()">
+    <div class="modal-panel">
+      <h3 style="margin-top: 0;">Export</h3>
+      <p style="font-size: 0.92rem;">Nové leady jsou lidé, kteří zvolili „Zatím ne“. Tipy jsou všichni, kdo odeslali cenu.</p>
+      <div class="form-group">
+        <label for="exportKind" class="form-label">Co stáhnout</label>
+        <select id="exportKind" class="form-select">
+          <option value="leads">Nové leady</option>
+          <option value="tips">Tipy</option>
+          <option value="all">Všechny záznamy</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="runExport('csv')">CSV</button>
+        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="runExport('xls')">XLS</button>
+        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="runExport('pdf')">PDF</button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 12px;">PDF se otevře v nabídce tisku. Tam zvolte Uložit jako PDF.</p>
+      <button type="button" class="btn btn-outline btn-block" style="margin-top: 8px;" onclick="closeExportModal()">Zrušit</button>
+    </div>
+  </div>
+
+  <div id="print-report"></div>
+
   <!-- Potvrzovací modal (náhrada za zakázané confirm()) -->
   <div id="confirmModal" class="modal-backdrop hidden" onclick="if(event.target===this) closeConfirmModal()">
     <div class="modal-panel">
       <h3 style="margin-top: 0; color: var(--danger);">Opravdu vymazat data?</h3>
-      <p style="font-size: 0.95rem;">Tato akce smaže účastníky a tipy ve společné databázi, tedy i na ostatních tabletech. Doporučujeme nejprve provést export do CSV.</p>
+      <p style="font-size: 0.95rem;">Tato akce smaže účastníky a tipy ve společné databázi, tedy i na ostatních tabletech. Doporučujeme nejprve provést export.</p>
       <div style="display: flex; gap: 10px; margin-top: 18px;">
         <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeConfirmModal()">Zrušit</button>
         <button type="button" class="btn btn-red" style="flex: 1;" onclick="executeClearData()">Ano, vymazat</button>
@@ -3539,22 +3602,44 @@
     }
 
     /* ==========================================================================
-       12. EXPORT DO CSV (UTF-8 BOM + středníky pro český Excel)
+       12. EXPORT (CSV, XLS, PDF) PRO LEADY I TIPY
        ========================================================================== */
+    function openExportModal() {
+      document.getElementById('exportModal').classList.remove('hidden');
+    }
+
+    function closeExportModal() {
+      document.getElementById('exportModal').classList.add('hidden');
+    }
+
     function csvCell(val) {
       let text = String(val ?? '');
       if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
       return `"${text.replace(/"/g, '""')}"`;
     }
 
-    function exportCSV() {
-      const leads = getStoredLeads();
-      if (leads.length === 0) {
-        showToast('Tabulka je prázdná, není co exportovat.');
-        return;
+    function xmlCell(value) {
+      const text = String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return `<Cell><Data ss:Type="Number">${value}</Data></Cell>`;
       }
-      const priceMap = getPriceMap();
+      return `<Cell><Data ss:Type="String">${text}</Data></Cell>`;
+    }
 
+    function exportSelection(kind) {
+      const priceMap = getPriceMap();
+      let leads = getStoredLeads();
+      if (kind === 'leads') leads = leads.filter(item => !item.isExisting);
+      if (kind === 'tips') leads = leads.filter(item => item.guessedPrice);
+      const titles = {
+        leads: 'Nové leady',
+        tips: 'Tipy',
+        all: 'Všechny záznamy'
+      };
       const headers = [
         'Datum a čas',
         'Typ účastníka',
@@ -3569,40 +3654,95 @@
         'Odchylka (Kč)',
         'Odchylka (%)'
       ];
-
       const rows = leads.map(item => {
         const actual = item.guessedPrice ? (priceMap[item.regionId] || '') : '';
         const dev = item.guessedPrice ? calculateDeviation(item.guessedPrice, actual) : null;
         return [
-          item.timestamp,
+          item.timestamp || '',
           item.isExisting ? 'Stávající uživatel' : 'Nový lead',
-          item.name,
-          item.email,
-          item.phone,
-          `${item.score}/10`,
-          item.level,
-          item.guessedPrice ? item.regionName : '',
-          item.guessedPrice || '',
-          actual,
+          item.name || '',
+          item.email || '',
+          item.phone || '',
+          Number(item.score) || 0,
+          item.level || '',
+          item.guessedPrice ? (item.regionName || '') : '',
+          item.guessedPrice ? Number(item.guessedPrice) : '',
+          actual === '' ? '' : Number(actual),
           dev ? Math.round(dev.diffKc) : '',
-          dev ? dev.absPct.toFixed(2).replace('.', ',') : ''
-        ].map(csvCell).join(';');
+          dev ? Number(dev.absPct.toFixed(2)) : ''
+        ];
       });
+      return { title: titles[kind] || titles.all, headers, rows };
+    }
 
-      const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    function downloadText(filename, content, type) {
+      const blob = new Blob([content], { type: type });
       const url = URL.createObjectURL(blob);
-
       const link = document.createElement('a');
       link.href = url;
-      const dateStamp = new Date().toISOString().slice(0, 10);
-      link.download = `CeMap_konference_leady_${dateStamp}.csv`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+    }
 
-      showToast('CSV soubor byl úspěšně stažen.');
+    function toCsv(data) {
+      const lines = [data.headers, ...data.rows].map(row => row.map(value => {
+        const text = typeof value === 'number' && Number.isFinite(value)
+          ? String(value).replace('.', ',')
+          : value;
+        return csvCell(text);
+      }).join(';'));
+      return '\uFEFF' + lines.join('\r\n');
+    }
+
+    function toXls(data) {
+      const header = `<Row>${data.headers.map(xmlCell).join('')}</Row>`;
+      const body = data.rows.map(row => `<Row>${row.map(xmlCell).join('')}</Row>`).join('');
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="${String(data.title).replace(/&/g, '&amp;').replace(/</g, '&lt;')}"><Table>
+${header}${body}
+</Table></Worksheet></Workbook>`;
+    }
+
+    function printPdf(data) {
+      const report = document.getElementById('print-report');
+      const head = data.headers.map(cell => `<th>${escapeHtml(cell)}</th>`).join('');
+      const body = data.rows.map(row => `<tr>${row.map(cell => {
+        const text = typeof cell === 'number' && Number.isFinite(cell)
+          ? String(cell).replace('.', ',')
+          : cell;
+        return `<td>${escapeHtml(String(text ?? ''))}</td>`;
+      }).join('')}</tr>`).join('');
+      report.innerHTML = `<h1>${escapeHtml(data.title)}</h1><p>CeMap, ${escapeHtml(new Date().toLocaleString('cs-CZ'))}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+      closeExportModal();
+      setTimeout(function () { window.print(); }, 60);
+    }
+
+    function runExport(format) {
+      const kind = document.getElementById('exportKind').value;
+      const data = exportSelection(kind);
+      if (!data.rows.length) {
+        showToast('Vybraný export je prázdný.');
+        return;
+      }
+      const stamp = new Date().toISOString().slice(0, 10);
+      const slug = kind === 'leads' ? 'nove_leady' : (kind === 'tips' ? 'tipy' : 'zaznamy');
+      const base = `CeMap_${slug}_${stamp}`;
+      if (format === 'csv') {
+        downloadText(base + '.csv', toCsv(data), 'text/csv;charset=utf-8');
+        closeExportModal();
+        showToast('CSV soubor byl stažen.');
+      } else if (format === 'xls') {
+        downloadText(base + '.xls', toXls(data), 'application/vnd.ms-excel');
+        closeExportModal();
+        showToast('XLS soubor byl stažen.');
+      } else {
+        printPdf(data);
+      }
     }
 
     function promptClearData() {
