@@ -1226,6 +1226,9 @@
         <button type="button" id="btn-skip-lead-existing" class="btn btn-ghost btn-block hidden" onclick="skipLeadForExistingUser()">
           Nechci soutěžit o cenu, rovnou zobrazit výsledek
         </button>
+        <button type="button" id="btn-skip-duplicate-tip" class="btn btn-ghost btn-block hidden" onclick="continueWithoutSecondTip()">
+          Tento e-mail už tipoval, zobrazit jen výsledek testu
+        </button>
       </div>
     </section>
 
@@ -2360,6 +2363,7 @@
       selectedRegionId: REGIONAL_PROPERTIES[0].id,
       activePhotoIdx: 0,
       guessedPrice: null,
+      rejectedTip: null,
       leadMode: 'new',
       leadData: {
         name: "",
@@ -2446,6 +2450,7 @@
       state.score = 0;
       state.answeredCurrent = false;
       state.guessedPrice = null;
+      state.rejectedTip = null;
       state.leadData = { name: "", email: "", phone: "" };
 
       renderQuestion();
@@ -2670,13 +2675,14 @@
       document.getElementById('leadPhone').value = '';
       document.getElementById('lead-error').classList.add('hidden');
       document.getElementById('btn-skip-lead-existing').classList.add('hidden');
+      document.getElementById('btn-skip-duplicate-tip').classList.add('hidden');
 
       if (mode === 'tip') {
         document.getElementById('lead-badge').textContent = 'Zařazení do tipovačky';
         document.getElementById('lead-heading').textContent = 'Zadejte e-mail k vyhodnocení tipu';
         document.getElementById('lead-subtext').textContent = 'Tipovačka se na konci dne vyhodnotí samostatně. Bez e-mailu vás nemůžeme zařadit mezi soutěžící.';
         document.getElementById('leadEmailLabel').textContent = 'E-mail *';
-        document.getElementById('lead-hint').textContent = '* Jméno a e-mail jsou povinné. Telefon je dobrovolný.';
+        document.getElementById('lead-hint').textContent = '* Jméno a e-mail jsou povinné. Telefon je dobrovolný. Každý e-mail může tipovat jen jednou.';
       } else {
         document.getElementById('lead-badge').textContent = 'Poslední krok před výsledkem';
         document.getElementById('lead-heading').textContent = 'Zobrazte své skóre a vyzvedněte si odměnu';
@@ -2686,7 +2692,29 @@
       }
     }
 
-    function submitLeadForm() {
+    let leadSubmitInFlight = false;
+
+    function emailHasLocalTip(email) {
+      const needle = String(email || '').trim().toLowerCase();
+      if (!needle) return false;
+      return getStoredLeads().some(function (lead) {
+        return lead.guessedPrice && String(lead.email || '').trim().toLowerCase() === needle;
+      });
+    }
+
+    async function emailHasSharedTip(email) {
+      if (emailHasLocalTip(email)) return true;
+      if (!navigator.onLine) return false;
+      try {
+        const result = await postShared({ action: 'tip-used', email: email });
+        return Boolean(result.data && result.data.shared && result.data.used);
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function submitLeadForm() {
+      if (leadSubmitInFlight) return;
       const name = document.getElementById('leadName').value.trim();
       const email = document.getElementById('leadEmail').value.trim();
       const phone = document.getElementById('leadPhone').value.trim();
@@ -2717,8 +2745,31 @@
         return;
       }
 
+      leadSubmitInFlight = true;
+      try {
+        if (state.guessedPrice !== null && email && await emailHasSharedTip(email)) {
+          state.rejectedTip = state.guessedPrice;
+          errEl.textContent = 'Tento e-mail už v tipovačce jeden tip odeslal. Každý e-mail může tipovat jen jednou.';
+          errEl.classList.remove('hidden');
+          document.getElementById('btn-skip-duplicate-tip').classList.remove('hidden');
+          return;
+        }
+      } finally {
+        leadSubmitInFlight = false;
+      }
+
+      state.rejectedTip = null;
       state.leadData = { name, email, phone };
       finalizeAndShowResult();
+    }
+
+    function continueWithoutSecondTip() {
+      const name = document.getElementById('leadName').value.trim();
+      const email = document.getElementById('leadEmail').value.trim();
+      const phone = document.getElementById('leadPhone').value.trim();
+      state.leadData = { name: name, email: email, phone: phone };
+      state.guessedPrice = null;
+      finalizeAndShowResult({ skipSave: true });
     }
 
     function skipLeadForExistingUser() {
@@ -2735,7 +2786,8 @@
       return "Střelec od boku";
     }
 
-    function finalizeAndShowResult() {
+    function finalizeAndShowResult(options) {
+      const skipSave = Boolean(options && options.skipSave);
       const score = state.score;
       const level = getLevelTitle(score);
       const prop = getSelectedProperty();
@@ -2764,9 +2816,11 @@
         guessedPrice: state.guessedPrice
       });
 
-      SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
-      scheduleLeadMail();
-      flushSharedLeads();
+      if (!skipSave) {
+        SafeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
+        scheduleLeadMail();
+        flushSharedLeads();
+      }
 
       // Vykreslení obrazovky výsledků (bez konkrétních výher)
       document.getElementById('res-score').textContent = `${score} / ${QUIZ_QUESTIONS.length}`;
@@ -2784,13 +2838,17 @@
         document.getElementById('res-desc').textContent = "Zastavte se u našeho týmu na stánku CeMap – během 2 minut vám ukážeme, jak získat přesná data o každé nemovitosti.";
       }
 
-      document.getElementById('res-region').textContent = state.guessedPrice !== null ? prop.region : 'Nezvoleno';
-      document.getElementById('res-tip').textContent = state.guessedPrice !== null ? formatCurrency(state.guessedPrice) : 'Přeskočeno';
+      const shownTip = state.guessedPrice !== null ? state.guessedPrice : state.rejectedTip;
+      document.getElementById('res-region').textContent = shownTip !== null && shownTip !== undefined ? prop.region : 'Nezvoleno';
+      document.getElementById('res-tip').textContent = shownTip !== null && shownTip !== undefined ? formatCurrency(shownTip) : 'Přeskočeno';
       const verdict = document.getElementById('res-tip-verdict');
       const dev = state.guessedPrice !== null
         ? calculateDeviation(state.guessedPrice, getPriceMap()[prop.id])
         : null;
-      if (!dev) {
+      if (state.rejectedTip && state.guessedPrice === null) {
+        verdict.textContent = 'Tento e-mail už tipoval. Nový tip se nepočítá.';
+        verdict.style.color = 'var(--cemap-red)';
+      } else if (!dev) {
         verdict.textContent = 'Přeskočeno';
         verdict.style.color = 'var(--text-muted)';
       } else if (dev.absPct <= PRICE_TOLERANCE_PCT) {
@@ -2993,6 +3051,18 @@
           if (result.data && result.data.shared === false) {
             rememberShared(result.data);
             break;
+          }
+          if (result.status === 409 && result.data && result.data.duplicate) {
+            leads.splice(i, 1);
+            i -= 1;
+            changed = true;
+            const verdict = document.getElementById('res-tip-verdict');
+            const resultView = document.getElementById('view-result');
+            if (verdict && resultView && !resultView.classList.contains('hidden')) {
+              verdict.textContent = 'Tento e-mail už tipoval. Nový tip se nepočítá.';
+              verdict.style.color = 'var(--cemap-red)';
+            }
+            continue;
           }
           if (result.status === 400) {
             leads[i] = Object.assign({}, leads[i], { synced: true });

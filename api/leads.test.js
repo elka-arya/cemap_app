@@ -35,6 +35,18 @@ async function main() {
 
   const saved = await handleAction({ store, action: "upsert", lead: lead() });
   assert.strictEqual(saved.body.shared, true);
+  const retry = await handleAction({ store, action: "upsert", lead: lead() });
+  assert.strictEqual(retry.status, 200);
+  const duplicate = await handleAction({
+    store,
+    action: "upsert",
+    lead: lead({ id: "dev-2-abc", email: "Jana@Example.com" })
+  });
+  assert.strictEqual(duplicate.status, 409);
+  const lookup = await handleAction({ store, action: "tip-used", email: "jana@example.com" });
+  assert.strictEqual(lookup.body.used, true);
+  const freeEmail = await handleAction({ store, action: "tip-used", email: "volny@example.com" });
+  assert.strictEqual(freeEmail.body.used, false);
 
   const renamed = await handleAction({
     store,

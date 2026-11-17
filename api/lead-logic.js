@@ -14,6 +14,20 @@ function hashesMatch(leftHex, rightHex) {
   return crypto.timingSafeEqual(left, right);
 }
 
+function sameEmail(left, right) {
+  return String(left || "").trim().toLowerCase() === String(right || "").trim().toLowerCase();
+}
+
+function emailAlreadyTipped(leads, email, exceptId) {
+  const needle = String(email || "").trim().toLowerCase();
+  if (!needle) return false;
+  return (leads || []).some((row) => {
+    return String(row.id) !== String(exceptId || "")
+      && row.guessedPrice
+      && sameEmail(row.email, needle);
+  });
+}
+
 function cleanLead(input) {
   if (!input || typeof input !== "object") return null;
   const id = String(input.id || "");
@@ -164,6 +178,15 @@ async function handleAction(options) {
     return { status: 200, body: { ok: true, shared: false } };
   }
 
+  if (action === "tip-used") {
+    const email = String(options.email || "").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { status: 400, body: { ok: false, error: "E-mail nemá platný formát." } };
+    }
+    const used = emailAlreadyTipped(await store.listLeads(), email);
+    return { status: 200, body: { ok: true, shared: true, used } };
+  }
+
   if (action === "upsert") {
     const lead = cleanLead(options.lead);
     if (!lead) return { status: 400, body: { ok: false, error: "Tip nejde uložit." } };
@@ -171,7 +194,23 @@ async function handleAction(options) {
     if (count >= 5000 && !(await store.hasLead(lead.id))) {
       return { status: 400, body: { ok: false, error: "Databáze tipů je plná." } };
     }
-    await store.insertLead(lead);
+    if (lead.guessedPrice && emailAlreadyTipped(await store.listLeads(), lead.email, lead.id)) {
+      return {
+        status: 409,
+        body: { ok: false, shared: true, duplicate: true, error: "Tento e-mail už v tipovačce jeden tip odeslal." }
+      };
+    }
+    try {
+      await store.insertLead(lead);
+    } catch (error) {
+      if (error && error.code === "23505") {
+        return {
+          status: 409,
+          body: { ok: false, shared: true, duplicate: true, error: "Tento e-mail už v tipovačce jeden tip odeslal." }
+        };
+      }
+      throw error;
+    }
     return { status: 200, body: { ok: true, shared: true } };
   }
 

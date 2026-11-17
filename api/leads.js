@@ -28,6 +28,11 @@ async function ensureSchema(query) {
       key text primary key,
       value text not null
     );
+    create unique index if not exists leads_one_tip_per_email
+      on leads (lower(payload->>'email'))
+      where coalesce(payload->>'guessedPrice', '') <> ''
+        and payload->>'guessedPrice' <> 'null'
+        and coalesce(payload->>'email', '') <> '';
   `);
   return schemaReady;
 }
