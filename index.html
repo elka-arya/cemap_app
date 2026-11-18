@@ -1590,8 +1590,8 @@
         q: "Jakou metodu používá CeMap pro oceňování nemovitostí?",
         options: [
           "Srovnávací metodu s možností vlastních manuálních úprav",
-          "Čistě automatizovaný odhad bez možnosti zásahu makléře",
-          "Výhradně nákladovou metodu vycházející z tabulek ČSÚ"
+          "Čistě výnosovou metodu na základě průměrného nájemného v katastru",
+          "Nákladovou metodu odvozenou z tabulkových cen stavebních prací"
         ],
         correct: 0,
         explanation: "CeMap kombinuje přesnou srovnávací metodu na základě reálných transakčních dat s možností odborných manuálních korekcí makléře."
@@ -1599,9 +1599,9 @@
       {
         q: "Od jakého data sahá historie dat v systému CeMap?",
         options: [
-          "Od 1. 1. 1989",
+          "Od 1. 1. 2008",
           "Od 1. 1. 2014",
-          "Od 1. 1. 2020"
+          "Od 1. 1. 2019"
         ],
         correct: 1,
         explanation: "V CeMapu máte k dispozici ucelenou historii cenových údajů z katastru nemovitostí od 1. 1. 2014 (od účinnosti nového občanského zákoníku)."
@@ -1609,9 +1609,9 @@
       {
         q: "Jaké typy nemovitostí dokážete v CeMapu ocenit?",
         options: [
-          "Pouze standardní byty, rodinné domy a stavební pozemky",
+          "Pouze bytové jednotky, rodinné domy a stavební pozemky",
           "Byty, domy, pozemky, komerční objekty i ostatní typy nemovitostí",
-          "Výhradně bytové jednotky v osobním vlastnictví"
+          "Výhradně rezidenční nemovitosti zapsané v bytových družstvech a SVJ"
         ],
         correct: 1,
         explanation: "Systém pokrývá kompletní spektrum realitního trhu – byty, rodinné domy, pozemky, komerční nemovitosti i specifické objekty."
@@ -1637,21 +1637,21 @@
         explanation: "Transakční ceny z katastru nemovitostí se v CeMapu aktualizují pravidelně na měsíční bázi, zatímco inzerce se aktualizuje denně."
       },
       {
-        q: "Který z následujících kroků patří mezi klíčové fáze zpracování inzerce v CeMapu?",
+        q: "Který z následujících kroků patří mezi klíčové fáze zpracování inzertních dat v CeMapu?",
         options: [
-          "Ruční přepisování kupních smluv pracovníky technické podpory",
-          "Automatické mazání všech inzerátů, u kterých cena klesla o více než 5 %",
-          "Deduplikace záznamů a odhalování cenových anomálií"
+          "Automatická indexace nabídkových cen podle inflační doložky ČSÚ",
+          "Plošné vyřazení všech nabídek, u kterých došlo k úpravě ceny o více než 5 %",
+          "Deduplikace opakujících se záznamů a identifikace cenových anomálií"
         ],
         correct: 2,
         explanation: "Inzeráty ze všech serverů procházejí párováním (deduplikací) a čištěním od extrémních cenových anomálií, aby nezkreslovaly statistiky."
       },
       {
-        q: "K čemu primárně slouží webový widget od CeMapu?",
+        q: "K čemu primárně slouží webový widget od CeMapu na stránkách makléře?",
         options: [
-          "Jako přímý e-shop pro online rezervaci nemovitostí",
-          "Ke sběru kontaktů na majitele nemovitostí z vašeho webu",
-          "Jako automatický kalkulátor hypotečních splátek"
+          "K přímému online sjednání a schválení hypotečního úvěru klientem",
+          "Ke sběru kontaktů na majitele nemovitostí prostřednictvím orientačního odhadu",
+          "K automatickému exportu inzerce na realitní portály a sociální sítě"
         ],
         correct: 1,
         explanation: "Cenový odhadce (widget) na webu makléře nebo kanceláře slouží jako efektivní nástroj pro akvizici nových prodávajících."
@@ -1669,9 +1669,9 @@
       {
         q: "Umí CeMap vytvořit cenovou mapu také pro nájemní bydlení?",
         options: [
-          "Ano, běžně s ní můžete pracovat",
-          "Ne, zaměřuje se výhradně na kupní ceny",
-          "Ano, ale pouze pro hlavní město Prahu"
+          "Ano, umožňuje analyzovat i tržní nájemné v dané lokalitě",
+          "Ne, pracuje výhradně s kupními cenami z realizovaných převodů",
+          "Pouze v krajských městech nad 100 000 obyvatel"
         ],
         correct: 0,
         explanation: "Cenová mapa nájmů je standardní součástí CeMapu pro celou ČR a pomáhá stanovit tržní nájemné i spočítat investiční výnos."
