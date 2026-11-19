@@ -1,10 +1,15 @@
-const CACHE = "cemap-kviz-v21";
+const CACHE = "cemap-kviz-v22";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icon-180.png",
   "./icon-512.png",
+  "./photos/kralovehradecky-1.jpg",
+  "./photos/kralovehradecky-2.jpg",
+  "./photos/kralovehradecky-3.jpg",
+  "./photos/kralovehradecky-4.jpg",
+  "./photos/kralovehradecky-5.jpg",
 ];
 
 self.addEventListener("install", (event) => {
